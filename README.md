@@ -36,18 +36,28 @@ Journey answers and progress stay in the current browser tab's `sessionStorage`.
 
 ## The living world
 
-The doorway opens into five connected places: a forest entrance, flower garden, wooden lantern bridge, moonlit lake with a bench, and a final balcony. Movement follows the connecting paths, while horizontal drags gently change the camera. Tap the world to walk, or use the left and right arrow keys. Flowers, lanterns, ripples, stars, notes, and the male penguin have large tap targets and equivalent buttons.
+The doorway opens into five connected places with softened terrain, rounded foliage, and joined paths: a forest entrance, flower garden, wooden lantern bridge, moonlit lake with a bench, and a final soil terrace that recalls the flowers, lanterns and stars discovered earlier. Movement follows the connecting paths, while horizontal drags gently change the camera. Tap the world to walk, or use the left and right arrow keys. Flowers, lanterns, ripples, stars, notes, and the male penguin have large tap targets and equivalent buttons.
 
 Distance is one saved preference throughout the journey. A hug, kiss, or hand-holding moment temporarily approaches, then returns to that preference; selfie contact poses hold until another pose is chosen. The shoulder-rooted flippers bend through the gesture. The existing story, optional answers, accessories, films, sound toggle, editable letter, selfie, and memory card remain available.
 
-World detail adapts to device capability and sustained frame time, with an optional Low/Medium/High setting. Low detail disables shadows, caps pixel ratio at 1, and reduces particles. Static environment meshes use instancing; only the current and nearby places are built, with a maximum of three cached locations. Gentler motion pauses the films, skips camera orbiting, and uses direct location changes.
+World detail adapts to device capability and sustained frame time, with an optional Low/Medium/High setting. Low detail disables shadow maps, retains soft contact shadows under the penguins, caps pixel ratio at 1, and reduces particles, glow layers and environmental motion. Static environment meshes use instancing; only the current and nearby places are built, with a maximum of three cached locations. Gentler motion pauses the films, skips camera orbiting, and uses direct location changes.
 
 ## Checks
 
-Run `npm test` for persistent distance and temporary contact checks. Run `npm run test:world`, then open http://127.0.0.1:4187 to check animated body clearance, flipper vertices, shoulder attachment, safe bounds, scene caching, and low-quality settings. The page renders a pose gallery and reports the sampled-frame results.
+Run `npm test` for persistent distance, smooth contact release, path joins and unobstructed bench approach checks. Run `npm run test:world`, then open http://127.0.0.1:4187 to check animated body clearance, flipper vertices, shoulder attachment, safe bounds, bench-seat clearance, camera framing at five viewport sizes, restart cleanup, scene caching, and low-quality settings. The page renders a pose gallery and reports the sampled-frame results.
 
 The complete story, skipped/answered questions, environmental controls, settings, selfie capture, and memory card have been checked in Chromium, including portrait and landscape viewport layouts. This is browser emulation; physical iOS/Safari and Android hardware have not been verified.
 
 ## Credits
 
 The three background videos were supplied by the project owner and optimized for this experience. Three.js is included under its MIT license; see `site/LICENSES.txt`.
+
+## October polish pass
+
+Ordinary conversation reactions preserve personal space. Accepted hugs have a lead-in, hold and return; interrupted gestures separate smoothly. Selfie-to-memory transitions retain the selected pose and image. Back navigation is available at the memory card and returns to the top of the previous chapter.
+
+Restart clears environmental discoveries, camera gestures, reaction and walking state, pending interactions, answers, photos and generated card URLs. Async photo/card results from an older journey are discarded. Sound, motion, world-detail preferences and personalized words are retained.
+
+The audio bed continues between locations with gradual filter changes. Discovery chimes are short and limited; chords cannot stack. Sound fades down while the page is hidden. On leaving the page, audio and rendering resources are released.
+
+Validation: eight Node tests and 16,380 sampled animation frames passed, including no sampled body penetration or bench-seat intersection. Full mobile journey checked at 390×844, with narrow portrait and landscape layout checks. The browser's download-event automation did not expose a file path; the generated memory PNG was successfully decoded at 1500px width, and the download action showed its success state. Hardware Safari/iOS and Android GPU performance remain unverified.

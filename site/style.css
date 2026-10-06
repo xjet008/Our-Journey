@@ -75,3 +75,31 @@ select:focus-visible{outline:2px solid var(--peach)}
  .gateway-words{top:14%}.gateway-words .eyebrow{font-size:8px;letter-spacing:1.7px}
 }
 @media(max-height:550px) and (min-width:701px){.immersed header{height:60px}.immersed main{padding-top:15px}.immersed h2{font-size:27px}.immersed #story{width:35%}.immersed .speech{top:12%}.immersed #miniActions{bottom:24px}.immersed #walkHint{bottom:85px}footer{height:55px}}
+
+/* Quiet reading space and touch targets, without covering the world with cards. */
+.immersed .film-shade{background:linear-gradient(90deg,#142c35f5 0%,#142c35e8 30%,#142c3560 43%,transparent 61%),linear-gradient(0deg,#142c3599,transparent 25%)}
+#story{position:relative}.immersed #story:before{content:'';position:absolute;inset:-30px -25px;z-index:-1;background:radial-gradient(ellipse at left,#142c35ed 20%,#142c35aa 62%,transparent 76%);pointer-events:none}
+.swatch{width:44px;height:44px;border-width:9px}.chip,.answer,.text-button,.back-link,.dialog-close,.utility{min-height:44px}
+.slider{height:44px}.intro{color:#e0e4d8}.tiny-note,.privacy{line-height:1.8}summary,#chapterInfo{min-height:44px}summary{padding-top:8px}
+.cinematic #story:before{display:none}
+@media(max-width:700px){
+ .immersed #story:before{inset:-20px -7vw 0;background:linear-gradient(0deg,#142c35f5 85%,#142c35de)}
+ .immersed .film-shade{background:linear-gradient(0deg,#142c35ee 0%,transparent 74%)}
+ .immersed #walkHint{display:none}
+ .immersed main,body.immersed[data-scene] main{padding-top:57svh}
+ .cinematic main,body.cinematic[data-scene] main{padding:0}
+ .swatches{gap:8px}.world-hotspot{max-width:70px}
+ header{padding-top:env(safe-area-inset-top)}footer{padding-bottom:env(safe-area-inset-bottom)}
+}
+@media(max-height:550px) and (orientation:landscape){
+ header,.immersed header{height:60px;padding:0 5%}.brand{font-size:17px}
+ main,body.immersed[data-scene] main{padding:24px 5% 40px;min-height:calc(100svh - 115px)}
+ #worldStage{position:fixed;inset:0 0 0 auto;width:62%;height:100svh;min-height:0}
+ #story,.immersed #story{width:36%;padding:0;max-width:380px;background:none}
+ h1{font-size:37px}h2,.immersed h2{font-size:27px}.eyebrow{font-size:8px;letter-spacing:1.6px}.hand-note{font-size:13px}
+ .speech,.immersed .speech{left:70%;top:15%;max-width:220px}
+ .immersed #worldStage{width:100%}.immersed #miniActions{position:fixed;right:4%;bottom:18px;max-width:55%;padding:0}
+ #walkHint{display:none}.immersed #story:before{inset:-24px -20px;background:radial-gradient(ellipse at left,#142c35f5 30%,#142c35bd 65%,transparent 80%)}
+ .cinematic #story{width:100%;max-width:none}.cinematic main,body.cinematic[data-scene] main{padding:0}
+ footer{height:55px}.letter{max-height:210px}
+}

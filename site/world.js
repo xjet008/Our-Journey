@@ -1,8 +1,9 @@
 import * as THREE from './assets/three.module.min.js';
-import {PartnerSpacing} from './proximity.js';
+import {PartnerSpacing,smooth} from './proximity.js';
 import {createFlipper, bendFlipper, moodPose, moodAliases} from './character-motion.js';
 import {RomanticWorld, places} from './environments.js';
 import {GuidedCamera, AdaptiveQuality} from './cinematic-camera.js';
+import {bench} from './world-layout.js';
 
 const TAU = Math.PI * 2;
 const FLOOR_LIMIT = 1.24;
@@ -286,13 +287,17 @@ class Penguin {
   }
 
   animate(t, dt, reduced, state) {
+    const oldHead=this.head.rotation.clone(),oldLean=this.body.rotation.z,oldLift=this.body.position.y;
+    const previous=this.group.position.clone();
     const delta = this.group.position.distanceTo(this.target);
     this.group.position.lerp(this.target, 1 - Math.exp(-dt * 5.5));
     const walking = !reduced && delta > .015;
-    const tempo = t * 8 + this.phase;
+    const moved=this.group.position.distanceTo(previous);
+    this.gait=(this.gait||this.phase)+moved*10;
+    const tempo=this.gait;
     const bob = reduced ? 0 : Math.sin(t * 1.9 + this.phase) * .013;
     const sitting = state.reaction === 'sitting';
-    this.body.position.y = bob + (sitting ? -.10 : 0) + (walking ? Math.abs(Math.sin(tempo)) * .046 : 0);
+    this.body.position.y = (sitting ? -.14 : bob) + (walking ? Math.abs(Math.sin(tempo)) * .046 : 0);
     this.torso.position.y = lerp(this.torso.position.y, sitting ? .85 : .925, 1 - Math.exp(-dt * 6));
     this.torso.scale.y = lerp(this.torso.scale.y, sitting ? (this.female ? .7 : .72) : (this.female ? .79 : .81), 1 - Math.exp(-dt * 6));
     this.belly.position.y = lerp(this.belly.position.y, sitting ? .82 : .94, 1 - Math.exp(-dt * 6));
@@ -312,7 +317,7 @@ class Penguin {
       this.head.rotation.z = -.075;
     } else if (active === 'happy' || active === 'stars') {
       left = -.58; right = .58;
-      if (!reduced && !sitting) this.body.position.y += Math.max(0, Math.sin(t * 5.5 + this.phase)) * .095;
+      if (!reduced && !sitting) this.body.position.y += Math.max(0, Math.sin(t * 5.5 + this.phase)) * ((state.variation||0)%3===0?.065:.016);
       this.head.rotation.z = Math.sin(t * 1.6 + this.phase) * .055;
     } else if (active === 'heart') {
       left = 1.08; right = -1.08;
@@ -352,6 +357,8 @@ class Penguin {
     }
     if (this.female && state.scene === 'welcome') face = -.3;
     if(state.travelYaw!=null)face=state.travelYaw;
+    const emotion=moodPose(active,reduced?0:t,state.variation||0,this.female);
+    if(!this.female&&emotion.left!=null)left=emotion.left;if(this.female&&emotion.right!=null)right=emotion.right;
     if(active!=='heart'&&active!=='hug'&&active!=='kiss'){
       // Keep the inner flipper relaxed; the outer one can wave or dance freely.
       if(this.female)left=Math.max(left,-.23);else right=Math.min(right,.23);
@@ -360,12 +367,11 @@ class Penguin {
     this.group.rotation.y += turn*(1-Math.exp(-dt*5));
     this.wings[0].rotation.z = lerp(this.wings[0].rotation.z, left, 1 - Math.exp(-dt * 9));
     this.wings[1].rotation.z = lerp(this.wings[1].rotation.z, right, 1 - Math.exp(-dt * 9));
-    const emotion=moodPose(active,t,state.variation||0,this.female);
     for(const [axis,key] of [['x','headX'],['y','headY'],['z','headZ']]) if(emotion[key]!=null)this.head.rotation[axis]=emotion[key];
     if(emotion.bounce&&!reduced)this.body.position.y+=emotion.bounce*(this.female?.5:1);
     if(!walking && active==='idle'){
-      const quiet=Math.sin(t*.29+this.phase);
-      this.head.rotation.y=quiet*.07;this.head.rotation.z+=Math.sin(t*.19+this.phase)*.025;
+      const quiet=reduced?0:Math.sin(t*.29+this.phase);
+      this.head.rotation.y=quiet*.07;this.head.rotation.z+=reduced?0:Math.sin(t*.19+this.phase)*.025;
     }
     this.wings.forEach((wing,i)=>{
       const wrap=active==='hug'&&!this.female&&i===1;
@@ -388,7 +394,10 @@ class Penguin {
     }
     const age = t - this.blinkStart;
     const blink = age >= 0 && age < .2 ? 1 - Math.sin(age / .2 * Math.PI) * .95 : 1;
-    this.eyes.forEach(eye => { eye.scale.y = active === 'sleep' || active === 'sleeping' ? .07 : active === 'kiss' ? .24 : blink; });
+    for(const axis of ['x','y','z'])this.head.rotation[axis]=lerp(oldHead[axis],this.head.rotation[axis],1-Math.exp(-dt*5));
+    this.body.rotation.z=lerp(oldLean,this.body.rotation.z,1-Math.exp(-dt*7));
+    this.body.position.y=lerp(oldLift,this.body.position.y,1-Math.exp(-dt*9));
+    this.eyes.forEach(eye => { eye.scale.y = active === 'sleep' || active === 'sleeping' ? .07 : active === 'kiss' ? lerp(blink,.24,contact.phase) : blink; });
   }
 }
 
@@ -463,6 +472,8 @@ export class JourneyWorld {
     this.buildTable();
     this.buildParticles();
     this.environments=new RomanticWorld(this.world);
+    const shadowGeometry=new THREE.CircleGeometry(1,24);
+    this.contactShadows=[this.male,this.female].map(()=>{const s=new THREE.Mesh(shadowGeometry,new THREE.MeshBasicMaterial({color:'#27332d',transparent:true,opacity:.20,depthWrite:false}));s.rotation.x=-Math.PI/2;s.scale.set(.48,.32,1);this.world.add(s);return s;});
     this.particlesAnchor=new THREE.Group();this.world.add(this.particlesAnchor);
     this.particlesAnchor.add(this.snow,...this.hearts.map(h=>h.mesh),...this.stars);
     const path=mesh(new THREE.BoxGeometry(4.7,.12,2.5),material('#90745a'),this.world,[0,-.10,-2.7]);
@@ -620,7 +631,7 @@ export class JourneyWorld {
     this.renderer.setSize(width, height, false);
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
-    this.wide = this.immersed ? width >= 700 : width / height > 1.55;
+    this.wide = this.immersed ? width >= 700 || width>height&&height<=550 : width / height > 1.55;
     this.mobile = width < 620;
     this.updateCamera();
   }
@@ -635,7 +646,7 @@ export class JourneyWorld {
 
   setScene(name = 'welcome') {
     if(this.failed||this.disposed)return;
-    const changed=name!==this.sceneName;this.sceneName=name;
+    const previous=this.sceneName,changed=name!==previous;this.sceneName=name;
     this.immersed=!['welcome','customize'].includes(name);
     this.environments.setVisible(this.immersed);
     this.island.visible=!this.immersed||name==='portal'&&this.anchor.z>-3;
@@ -646,7 +657,7 @@ export class JourneyWorld {
     this.gatewayPath.visible=name==='portal';
     if(name==='welcome'||name==='customize'){this.destination.set(0,0,0);this.travelQueue=[];this.requestedPlace=null;this.place=null;this.setCompanion(name==='customize');}
     else{this.setCompanion(true);if(['letter','distance'].includes(name))this.travelTo('entrance',true);if(['final','selfie','memory'].includes(name))this.travelTo('viewpoint',true);}
-    if(changed){this.pose='idle';this.spacing.release();this.reaction='idle';this.reactionUntil=Infinity;this.walkCenter=0;}
+    if(changed&&!(['selfie','memory'].includes(previous)&&['selfie','memory'].includes(name))){this.pose='idle';this.spacing.release(this.elapsed);this.reaction='idle';this.reactionUntil=Infinity;this.walkCenter=0;}
     this.keyLight.color.set(['final','memory'].includes(name)?'#ffd7ad':'#ffdfc1');
     this.resize();
     if(changed&&!this.immersed)this.settle();
@@ -661,6 +672,12 @@ export class JourneyWorld {
     if(from>=0&&from!==to){const direction=to>from?1:-1;for(let i=from+direction;direction>0?i<=to:i>=to;i+=direction)this.travelQueue.push(route[i]);}
     else this.travelQueue.push(place);
     if(this.reducedMotion){this.travelQueue=[place];}
+    // Rapid choices update the remaining route while the current segment
+    // finishes. Redirecting from its middle would cut diagonally across water.
+    if(!this.reducedMotion&&from>=0&&this.anchor.distanceTo(this.destination)>.18){
+      if(this.place===place)this.travelQueue=[];
+      return;
+    }
     const next=this.travelQueue.shift();this.destination.copy(this.environments.enter(next));this.place=next;
     if(this.reducedMotion){this.anchor.copy(this.destination);}
     this.positionPair();
@@ -700,9 +717,17 @@ export class JourneyWorld {
   positionPair(gap=this.spacing.sample(this.elapsed).gap, center=this.walkCenter){
     gap=clamp(gap,1.28,FLOOR_LIMIT*2);center=clamp(center,-FLOOR_LIMIT+gap/2,FLOOR_LIMIT-gap/2);
     const sitting=this.reaction==='sitting';
-    const z=this.anchor.z+(sitting?-.60:.24),y=sitting?.42:0;
-    this.male.target.set(this.anchor.x+center-gap/2,y,z);
-    this.female.target.set(this.anchor.x+center+gap/2,y,z);
+    const b=this.benchBlend||0;
+    if(!sitting)this.benchBacking=false;
+    if(sitting&&Math.min(this.male.group.position.y,this.female.group.position.y)>.58)this.benchBacking=true;
+    const seated=this.benchBacking&&Math.abs((this.male.group.position.z+this.female.group.position.z)/2-this.anchor.z-bench.z-.25)<.03;
+    const z=this.anchor.z+(sitting&&this.benchBacking?bench.z+.25:.24);
+    // Walk onto the bank, hop up, then settle back onto the seat. On leaving,
+    // retain support until the body has cleared the front of the bench.
+    const y=sitting?(seated?.50:.62)*smooth((b-.60)/.15):b>.30?.50:.50*smooth(b/.30);
+    this.pairCenterX=this.anchor.x+bench.x*(this.benchBlend||0);
+    this.male.target.set(this.pairCenterX+center-gap/2,y+.02*Math.min(1,y/.5),z);
+    this.female.target.set(this.pairCenterX+center+gap/2,y,z);
   }
 
   setDistance(value){
@@ -711,9 +736,11 @@ export class JourneyWorld {
     this.positionPair();
   }
 
-  react(name='happy'){
+  react(name='happy',variation){
     if(this.failed||this.disposed)return;
-    const kind=poseName(name);this.reaction=kind;this.reactionStart=this.elapsed;this.variation=Math.floor(Math.random()*3);
+    const kind=poseName(name);
+    if(this.spacing.override&&!['hug','kiss','hand'].includes(kind))return;
+    this.reaction=kind;this.reactionStart=this.elapsed;this.variation=variation??Math.floor(Math.random()*3);
     this.reactionUntil=this.elapsed+(['hug','kiss','hand'].includes(kind)?7.6:kind==='sitting'?7:4.5);
     if(['hug','kiss','hand'].includes(kind)){this.setCompanion(true);this.spacing.contact(kind,this.elapsed);}
   }
@@ -721,7 +748,7 @@ export class JourneyWorld {
   walkTo(x=0){
     if(this.failed||this.disposed)return;
     this.walkCenter=clamp(Number(x)||0,-1,1)*.55;
-    this.pose='idle';this.reaction='idle';this.spacing.release();this.positionPair();
+    this.pose='idle';this.reaction='idle';this.spacing.release(this.elapsed);this.positionPair();
   }
 
   setPose(name='idle'){
@@ -736,7 +763,10 @@ export class JourneyWorld {
 
   interact(id){
     if(this.failed)return;
+    if(this.anchor.distanceTo(this.destination)>.3){this.pendingInteractions??=new Set();this.pendingInteractions.add(id);if(this.pendingInteractions.size>6)this.pendingInteractions.delete(this.pendingInteractions.values().next().value);return;}
+    if(id==='bench'&&this.place!=='stars')return;
     this.environments.interact(id,this.elapsed);
+    if(this.spacing.override)return;
     if(id==='flower')this.react('flower');
     else if(id==='bench')this.react('sitting');
     else if(id==='moon'||id==='star'){this.guidedCamera.look=1;this.react('lookstars');clearTimeout(this.lookTimer);this.lookTimer=setTimeout(()=>{this.guidedCamera.look=0;},4500);}
@@ -758,7 +788,9 @@ export class JourneyWorld {
     const radius=p=>Math.hypot(.575*Math.cos(p.group.rotation.y),.54*Math.sin(p.group.rotation.y));
     const min=radius(this.male)+radius(this.female)+.09;
     const gap=clamp(b.x-a.x,min,FLOOR_LIMIT*2);
-    const center=clamp((a.x+b.x)/2,this.anchor.x-FLOOR_LIMIT+gap/2,this.anchor.x+FLOOR_LIMIT-gap/2);
+    const focus=this.pairCenterX??this.anchor.x;
+    // Let both partners approach the bench without snapping sideways.
+    const center=clamp((a.x+b.x)/2,focus-FLOOR_LIMIT+gap/2,focus+FLOOR_LIMIT-gap/2);
     a.x=center-gap/2;b.x=center+gap/2;
   }
 
@@ -767,6 +799,15 @@ export class JourneyWorld {
   }
 
   setReducedMotion(value) { this.reducedMotion = !!value;if(this.reducedMotion)this.settle(); }
+
+  reset(){
+    if(this.failed)return;clearTimeout(this.lookTimer);this.guidedCamera.look=0;this.guidedCamera.drag=0;this.guidedCamera.gatewayStart=null;
+    this.environments.reset();this.pendingInteractions?.clear();this.spacing.release();this.walkCenter=0;this.travelSpeed=0;this.nextIdle=this.elapsed+12;this.lastHotspot=0;this.pose='idle';this.reaction='idle';this.requestedPlace=null;this.travelQueue=[];
+    this.benchBlend=0;this.anchor.set(0,0,0);this.destination.copy(this.anchor);this.sceneName='reset';this.setDistance(55);this.setScene('welcome');this.settle();
+    for(const p of [this.male,this.female]){p.gait=p.phase;p.blinkStart=-10;p.blinkAt=this.elapsed+4;p.group.rotation.y=p.baseRotation;p.body.position.y=0;p.body.rotation.set(0,0,0);p.head.rotation.set(0,0,p.female?.025:0);p.torso.position.y=.925;p.torso.scale.y=p.female?.79:.81;p.belly.position.y=.94;p.belly.scale.y=.599;p.gift.visible=false;p.eyes.forEach(e=>e.scale.y=1);p.wings.forEach((wing,i)=>{wing.rotation.z=i?.23:-.23;bendFlipper(wing.children[0],0,'idle',1.4);wing.children[0].userData.bent=false;});p.feet.forEach(foot=>{foot.position.y=.065;foot.position.z=.123;foot.rotation.x=0;});}
+  }
+
+  endContact(){this.spacing.release(this.elapsed);this.pose='idle';this.reaction='idle';this.reactionUntil=Infinity;}
 
   frame(now) {
     if (this.disposed || this.failed) return;
@@ -777,17 +818,21 @@ export class JourneyWorld {
     const t = this.elapsed;
     if(this.anchor.distanceTo(this.destination)<.18&&this.travelQueue?.length){const next=this.travelQueue.shift();this.destination.copy(this.environments.enter(next));this.place=next;}
     if (this.reactionUntil < t){this.reaction=this.pose==='idle'?'idle':this.pose;this.spacing.release();this.reactionUntil=Infinity;}
-    if(t>this.nextIdle&&this.reaction==='idle'&&this.sceneName!=='portal'){this.react(['curious','shy','hopeful'][Math.floor(Math.random()*3)]);this.nextIdle=t+10+Math.random()*9;}
-    const embrace=['hug','kiss','hand'].includes(this.reaction);
-    if(!embrace)this.anchor.lerp(this.destination,1-Math.exp(-dt*(this.sceneName==='portal'?.65:2.0)));
+    if(t>this.nextIdle&&this.reaction==='idle'&&!this.quiet&&['welcome','customize','journey'].includes(this.sceneName)){this.react(['curious','shy','hopeful'][Math.floor(Math.random()*3)]);this.nextIdle=t+14+Math.random()*8;}
+    const embrace=this.spacing.override!=null||['hug','kiss','hand'].includes(this.reaction);
+    if(!embrace){const remaining=this.anchor.distanceTo(this.destination),speed=Math.min(remaining*2,this.sceneName==='portal'?1.8:2.4);this.travelSpeed=lerp(this.travelSpeed||0,speed,1-Math.exp(-dt*4));if(remaining>.001)this.anchor.addScaledVector(this.destination.clone().sub(this.anchor).normalize(),Math.min(remaining,this.travelSpeed*dt));}
+    if(this.pendingInteractions?.size&&!this.travelQueue?.length&&this.anchor.distanceTo(this.destination)<.3){const ids=[...this.pendingInteractions];this.pendingInteractions.clear();ids.forEach(id=>this.environments.interact(id,t));this.interact(ids.at(-1));}
+    this.benchBlend=lerp(this.benchBlend||0,this.reaction==='sitting'?1:0,1-Math.exp(-dt*3));if(this.benchBlend<.001)this.benchBlend=0;
     const contact=this.spacing.sample(t);if(this.companionVisible)this.positionPair(contact.gap);else this.male.target.copy(this.anchor).add(new THREE.Vector3(-.04,0,.23));
     const travel=this.destination.clone().sub(this.anchor);
-    const state={reaction:this.reaction,scene:this.sceneName,contact,actualGap:this.female.group.position.x-this.male.group.position.x,variation:this.variation,travelYaw:!embrace&&this.immersed&&travel.length()>.18?Math.atan2(travel.x,travel.z):null};
+    const state={reaction:contact.phase>0?contact.kind:this.reaction,scene:this.sceneName,contact,actualGap:this.female.group.position.x-this.male.group.position.x,variation:this.variation,travelYaw:!embrace&&this.immersed&&travel.length()>.18?Math.atan2(travel.x,travel.z):null};
     this.male.animate(t, dt, this.reducedMotion, state);
     if (this.female.group.visible) this.female.animate(t, dt, this.reducedMotion, state);
     this.keepBodiesApart();
-    this.guidedCamera.update({anchor:this.anchor,scene:this.sceneName,elapsed:t,dt,reduced:this.reducedMotion,wide:this.wide,aspect:this.camera.aspect});
-    this.environments.update(t,this.reducedMotion);this.particlesAnchor.position.copy(this.anchor);
+    const focus=this.anchor.clone();focus.x=this.companionVisible?(this.male.group.position.x+this.female.group.position.x)/2:this.male.group.position.x;
+    this.guidedCamera.update({anchor:focus,scene:this.sceneName,place:this.place,elapsed:t,dt,reduced:this.reducedMotion,wide:this.wide,aspect:this.camera.aspect});
+    this.environments.update(t,this.reducedMotion,this.quality.level);this.particlesAnchor.position.copy(this.anchor);
+    this.contactShadows.forEach((s,i)=>{const p=i?this.female:this.male;s.visible=p.group.visible;s.position.set(p.group.position.x,p.group.position.y>.02?-.01:.007,p.group.position.z);s.material.opacity=(this.quality.level==='low'?.23:.09)*Math.max(.2,1-p.group.position.y*1.6);});
     this.keyLight.position.copy(this.anchor).add(new THREE.Vector3(-3.5,6,5));this.keyLight.target.position.copy(this.anchor);this.keyLight.target.updateMatrixWorld();
     this.rimLight.position.copy(this.anchor).add(new THREE.Vector3(2,3,-5));
     if(this.sceneName==='portal')this.island.visible=this.anchor.z>-3;
@@ -798,7 +843,7 @@ export class JourneyWorld {
       if (!heart.visible) return;
       const rise = this.reducedMotion ? seed : (t * .19 + seed) % 1;
       heart.position.set(Math.sin(phase) * (1.35 + seed * .6), 1.28 + rise * 2, Math.cos(phase) * .75 -.1);
-      heart.rotation.set(.08, this.reducedMotion ? phase : t * .4 + phase, Math.sin(phase + t) * .16);
+      heart.rotation.set(.08, this.reducedMotion ? phase : t * .4 + phase, Math.sin(phase + (this.reducedMotion?0:t)) * .16);
       const size = (.06 + seed * .038) * (this.reducedMotion ? 1 : Math.sin(rise * Math.PI));
       heart.scale.setScalar(size);
     });
@@ -811,13 +856,14 @@ export class JourneyWorld {
       this.snow.geometry.attributes.position.needsUpdate = true;
     }
     this.snow.material.opacity = this.reaction==='snow'?.65:this.immersed?.30:.20;
-    this.snow.geometry.setDrawRange(0,this.quality.level==='low'?24:this.quality.level==='medium'?48:80);
+    this.snow.geometry.setDrawRange(0,this.reducedMotion?12:this.quality.level==='low'?20:this.quality.level==='medium'?40:70);
     this.lanterns.forEach((lantern, i) => {
       const flicker = this.reducedMotion ? 1 : 1 + Math.sin(t * 6.3 + i) * .04 + Math.sin(t * 9.7) * .03;
       lantern.flame.scale.y = .073 * flicker;
       lantern.light.intensity = 1.7 * flicker;
     });
     this.stars.forEach((star, i) => {
+      star.visible=i<(this.quality.level==='low'?7:this.quality.level==='medium'?12:22);
       star.material.opacity = (this.reaction === 'stars' || this.reaction === 'lookstars' ? .95 : .45) * (this.reducedMotion ? .7 : .65 + Math.sin(t * .8 + i * 2.1) * .35);
     });
     if(!document.hidden)this.renderer.render(this.scene,this.camera);

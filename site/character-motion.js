@@ -48,7 +48,7 @@ export function moodPose(kind,t,variation=0,female=false){
     case 'shy':return {headX:.12,headY:-.2*quiet,headZ:-.09*quiet,right:.4};
     case 'hopeful':return {headX:-.07,headY:.12*quiet,headZ:.04*quiet};
     case 'surprised':return {headX:-.12,headZ:.06,bounce:Math.max(0,Math.sin(t*4))*.045};
-    case 'patient':return {headX:.11,headY:Math.sin(t*.35)*.12,headZ:-.06,right:.16};
+    case 'patient':return variation%3===1?{headX:.03,headY:Math.sin(t*.25)*.16,headZ:.04}:variation%3===2?{headX:.12,headY:-.08,headZ:-.08}:{headX:.08,headY:Math.sin(t*.35)*.10,headZ:-.03};
     case 'comfort':return {headX:.07,headY:female?-.16:.16,headZ:female?.065:-.065};
     case 'happy':return variation%3===1?{headZ:Math.sin(t*2)*.05,left:-.6,right:.75}:variation%3===2?{headY:Math.sin(t)*.14,headZ:-.07}:{};
     default:return {};

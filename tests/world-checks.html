@@ -2,7 +2,7 @@
 <style>body{margin:0;background:#20353b;color:#f5eee1;font:14px Segoe UI}#result{white-space:pre-wrap;padding:20px}canvas{width:900px;height:550px;display:block}.grid{display:grid;grid-template-columns:1fr 1fr;gap:15px;padding:15px}.grid img{width:100%}h2{font:22px Georgia}</style>
 <pre id="result">Running distance, geometry, and scene checks…</pre><canvas></canvas><div class="grid"></div>
 <script type="module">
-import {JourneyWorld} from '/world.js';import * as THREE from '/assets/three.module.min.js';import {PartnerSpacing,distanceToGap} from '/proximity.js';
+import {JourneyWorld} from '/world.js';import * as THREE from '/assets/three.module.min.js';import {PartnerSpacing,distanceToGap} from '/proximity.js';import {bench,decks,connectors} from '/world-layout.js';import {places} from '/environments.js';
 const errors=new Set();let samples=0,penetrations=0,minGap=Infinity;const issues=[];
 const assert=(pass,message)=>{if(!pass)errors.add(message);};
 for(const d of [0,55,100])for(const kind of ['hug','kiss','hand']){const s=new PartnerSpacing(d);s.contact(kind,10);for(let t=10;t<=18;t+=.1){const r=s.sample(t);assert(s.selected===d,'Contact changed saved preference');assert(r.gap>=1.27&&r.gap<=2.45,'Contact out of bounds');}assert(Math.abs(s.sample(18).gap-distanceToGap(d))<.001,'Contact did not return to preference');s.contact(kind,20,{persistent:true});s.sample(100);assert(s.selected===d,'Persistent pose changed preference');s.release();assert(s.sample(101).gap===distanceToGap(d),'Pose release did not restore preference');}
@@ -11,7 +11,7 @@ function inspect(){
  w.scene.updateMatrixWorld(true);const a=w.male.group.position,b=w.female.group.position;
  const r=p=>Math.hypot(.575*Math.cos(p.group.rotation.y),.54*Math.sin(p.group.rotation.y));
  minGap=Math.min(minGap,b.x-a.x-r(w.male)-r(w.female));assert(b.x-a.x>=r(w.male)+r(w.female)+.089,'Body clearance');
- for(const p of [a,b])assert(Math.abs(p.x-w.anchor.x)<=1.241,'Outside safe floor');
+ for(const p of [a,b])assert(Math.abs(p.x-(w.pairCenterX??w.anchor.x))<=1.241,'Outside safe floor');
  for(const p of [w.male,w.female])p.wings.forEach((wing,i)=>assert(wing.position.distanceTo(new THREE.Vector3((i?1:-1)*.5,1.25,.035))<.001,'Detached shoulder'));
  if(samples%8===0){
   const solids=p=>[p.torso,p.belly,p.head.children[0]];const point=new THREE.Vector3();
@@ -19,6 +19,7 @@ function inspect(){
    const inverse=target.matrixWorld.clone().invert(),attr=mesh.geometry.attributes.position;
    for(let i=0;i<attr.count;i+=2){point.fromBufferAttribute(attr,i).applyMatrix4(mesh.matrixWorld).applyMatrix4(inverse);if(point.lengthSq()<.95**2){penetrations++;if(issues.length<15)issues.push(`${w.reaction} ${label} ${own.wings.some(g=>g.children[0]===mesh)?'wing':'body'} into ${solids(other).indexOf(target)} at frame ${samples}`);break;}}
   }
+  if(w.place==='stars'&&w.anchor.distanceTo(w.destination)<.01){const seat=new THREE.Box3(new THREE.Vector3(8+bench.x-1.945,.395,-21+bench.z-.395),new THREE.Vector3(8+bench.x+1.945,.505,-21+bench.z+.395));for(const own of [w.male,w.female])for(const body of solids(own)){const attr=body.geometry.attributes.position;for(let i=0;i<attr.count;i+=2){point.fromBufferAttribute(attr,i).applyMatrix4(body.matrixWorld);const hit=seat.containsPoint(point);if(hit&&issues.length<15)issues.push(`Bench ${w.reaction} frame ${samples} at ${point.toArray().map(n=>n.toFixed(3))}`);assert(!hit,'Body intersects bench seat');}}}
  }samples++;
 }
 function step(n=100){for(let i=0;i<n;i++){w.frame((w.lastTime||performance.now())+1000/60);cancelAnimationFrame(w.frameId);inspect();}}
@@ -28,7 +29,25 @@ for(const place of ['roses','grove','stars','viewpoint','entrance','roses','grov
 for(const mood of ['happy','wave','flower','shy','curious','patient','surprised','hand','hug','kiss']){w.setDistance(100);w.react(mood);step(480);assert(w.spacing.selected===100,'Reaction changed preference');}
 for(const delta of [100,1000])for(const selected of [0,55,100])for(const gesture of ['hug','kiss','hand']){w.setScene('selfie');w.setPose('Standing together');w.setDistance(selected);w.settle();w.react(gesture);for(let i=0;i<80;i++){w.frame((w.lastTime||performance.now())+delta);cancelAnimationFrame(w.frameId);inspect();}assert(w.spacing.selected===selected,'Slow frame changed preference');}
 assert(!w.renderer.shadowMap.enabled,'Low quality shadows enabled');assert(w.renderer.getPixelRatio()<=1,'Low quality DPR too high');
+w.setScene('journey');w.travelTo('stars');w.settle();w.walkTo(0);step(90);
 for(const id of ['flower','lantern','water','moon','bench']){w.interact(id);step(15);assert(w.environments.effects[id]!=null,`Missing ${id} interaction`);}
+step(450);w.reset();assert(Object.keys(w.environments.effects).length===0,'Restart retained discoveries');assert(w.guidedCamera.look===0&&w.guidedCamera.drag===0,'Restart retained camera interaction');assert(w.spacing.override===null&&w.spacing.selected===55,'Restart retained contact or distance');
+w.setScene('journey');w.travelTo('grove');w.interact('lantern');step(900);assert(w.environments.effects.lantern!=null,'Discovery lost during travel');
+w.react('hug');step(160);w.walkTo(1);step(100);assert(w.spacing.override===null,'Interrupted hug did not finish separating');
+for(const [width,height] of [[390,844],[320,568],[844,390],[568,320],[1440,900]]){
+ w.canvas.style.width=width+'px';w.canvas.style.height=height+'px';w.resize();w.setDistance(0);
+ for(const place of ['entrance','roses','grove','stars','viewpoint']){w.setScene('journey');w.travelTo(place);w.settle();step(45);
+  for(const penguin of [w.male,w.female])for(const y of [0,2.24]){const p=penguin.group.position.clone().add(new THREE.Vector3(0,y,0)).project(w.camera);assert(Math.abs(p.x)<.93&&p.y<.85&&p.y>-.72,`Camera crops penguin at ${width}x${height} ${place}`);if(width<height)assert((1-p.y)/2<.64,'Portrait character enters reading area');}
+ }
+}
+w.canvas.style.width='900px';w.canvas.style.height='550px';w.resize();
+w.reset();w.setScene('journey');w.travelTo('stars');w.setReducedMotion(true);w.interact('bench');step(480);assert(w.spacing.selected===55,'Reduced motion lost preference');w.setReducedMotion(false);
+w.setScene('selfie');w.setPose('Side hug');step(150);const held=w.spacing.override;w.setScene('memory');assert(w.spacing.override===held&&w.pose==='hug','Memory interrupted held selfie pose');step(10);w.reset();
+w.setScene('journey');w.travelTo('entrance');w.settle();w.travelTo('roses');step(10);w.travelTo('grove');step(10);w.travelTo('stars');
+const surfaces=Object.entries(decks).map(([owner,d])=>{const [x,,z]=places[owner].anchor;return {owner,x0:x-d.width/2,x1:x+d.width/2,z0:z-d.depth/2,z1:z+d.depth/2};});
+for(const c of connectors){const [x,,z]=places[c.owner].anchor,lo=Math.min(c.start,c.end),hi=Math.max(c.start,c.end);surfaces.push({owner:c.owner,x0:x+(c.axis==='x'?lo:-c.width/2),x1:x+(c.axis==='x'?hi:c.width/2),z0:z+(c.axis==='z'?lo:-c.width/2),z1:z+(c.axis==='z'?hi:c.width/2)});}
+for(let i=0;i<900;i++){step(1);for(const p of [w.male,w.female])for(const foot of p.feet){const {x,z}=foot.getWorldPosition(new THREE.Vector3());assert(surfaces.some(s=>w.environments.cache.has(s.owner)&&x>=s.x0&&x<=s.x1&&z>=s.z0&&z<=s.z1),'Rapid navigation leaves a loaded walking surface');}}
+assert(w.anchor.distanceTo(w.destination)<.02&&!w.travelQueue.length,'Rapid route did not reach the lake');
 w.setScene('selfie');w.anchor.copy(w.destination);w.setDistance(100);w.setPose('Standing together');step(100);
 for(const pose of poses){w.setPose(pose);step(170);w.renderer.render=draw;draw(w.scene,w.camera);const item=document.createElement('article');item.innerHTML=`<h2>${pose}</h2><img alt="${pose}" src="${w.capture()}">`;document.querySelector('.grid').append(item);w.renderer.render=()=>{};}
 document.querySelector('#result').textContent=JSON.stringify({passed:errors.size===0&&penetrations===0,samples,errors:[...errors],penetrations,issues,minGap,cache:w.environments.cache.size,drawCalls:w.renderer.info.render.calls,triangles:w.renderer.info.render.triangles},null,2);w.dispose();
