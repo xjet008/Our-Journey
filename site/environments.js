@@ -1,6 +1,6 @@
 import * as THREE from './assets/three.module.min.js';
 import {decks,connectors,bench} from './world-layout.js';
-import {tileUV,tileRectangle} from './tiled-floor.js';
+import {tilePlatform,tileDeck} from './tiled-floor.js';
 
 export const places={
   entrance:{anchor:[0,0,-6],next:'roses',name:'The forest entrance'},
@@ -44,19 +44,14 @@ export class RomanticWorld {
     glow.material=this.mat('#ddbc7e',{emissive:'#e9b66f',emissiveIntensity:.22});
     this.add(this.unitCone,this.mat('#665449'),g,[x,.46,z],[.16,.12,.16]);return glow;
   }
-  ground(g,w,d,color='#73503b'){
-    const r=Math.min(.95,w/4,d/4),x=w/2,z=d/2,s=new THREE.Shape();
+  ground(g,w,d,cornerRadius=.95){
+    const r=Math.min(cornerRadius,w/4,d/4),x=w/2,z=d/2,s=new THREE.Shape();
     s.moveTo(-x+r,-z);s.lineTo(x-r,-z);s.quadraticCurveTo(x,-z,x,-z+r);s.lineTo(x,z-r);s.quadraticCurveTo(x,z,x-r,z);s.lineTo(-x+r,z);s.quadraticCurveTo(-x,z,-x,z-r);s.lineTo(-x,-z+r);s.quadraticCurveTo(-x,-z,-x+r,-z);
-    const geo=new THREE.ExtrudeGeometry(s,{depth:.18,bevelEnabled:true,bevelSegments:3,steps:1,bevelSize:.055,bevelThickness:.07,curveSegments:5});geo.rotateX(-Math.PI/2);
-    // Leave the beveled foundation below the tile face, avoiding coplanar flicker.
-    this.add(geo,this.mat('#85735d'),g,[0,-.262,0],[1,1,1]);
-    const surface=new THREE.ShapeGeometry(s,16);surface.rotateX(-Math.PI/2);tileUV(surface);
-    this.add(surface,this.tileFinish,g,[0,0,0],[1,1,1]);
+    return tilePlatform(g,this.tileFinish,this.mat('#2d322b'),s);
   }
   planks(g,w,d,cx=0,cz=0,alongX=false){
     const width=alongX?d:w,depth=alongX?w:d;
-    this.box(g,'#7e705b',[cx,-.065,cz],[width,.13,depth]);
-    tileRectangle(g,this.tileFinish,width,depth,cx,cz,.002);
+    return tileDeck(g,this.tileFinish,this.mat('#2d322b'),width,depth,cx,cz);
   }
   rail(g,x,z,length,alongX=false){
     const panels=Math.max(2,Math.ceil(length/1.15)),step=length/panels;
@@ -86,7 +81,7 @@ export class RomanticWorld {
       spot('letter','Open the letter','✉',[-1.985,.785,1.52]);
       spot('note','A note among the leaves','✧',[2.4,.60,1.6]);
     }else if(name==='roses'){
-      this.ground(g,7.4,6.8,'#776245');
+      this.ground(g,7.4,6.8);
       for(let side of [-1,1])for(let i=0;i<8;i++){const x=side*(2.1+(i%3)*.23),z=-2.2+i*.6;record.flowers.push(this.flower(g,x,z,i%2?'#dba7a1':'#efe2ca'));}
       this.tree(g,-3,-2.4,2.1);this.tree(g,3,-2.3,2.8);
       this.rail(g,3.78,-2.18,1.54,true);this.rail(g,3.78,2.18,1.54,true);
@@ -101,8 +96,10 @@ export class RomanticWorld {
     }else if(name==='stars'){
       const water=this.ball(g,'#426568',[0,-.48,0],[7.5,.022,6]);water.userData.dynamic=true;water.material=this.mat('#426568',{roughness:.65,metalness:.05});record.water=water;
       // Keep the lake deck open on the bench side so the pair can walk onto the bank.
-      this.planks(g,5.2,4.8);this.rail(g,2.4,-2.2,4.4);
-      const bank=new THREE.Group();bank.position.set(-4,-.025,0);g.add(bank);this.ground(bank,5.8,5.1,'#76654b');
+      // One level landing spans the bench bay and main deck. The former lower
+      // bank overlapped the deck and exposed a mismatched edge underneath it.
+      const landing=new THREE.Group();landing.position.x=-2.15;g.add(landing);this.ground(landing,9.5,4.8,.45);
+      this.rail(g,2.4,-2.2,4.4);
       this.tree(g,-6.1,-2.2,2.3);
       this.box(g,'#937353',[bench.x,.45,bench.z],[3.9,.12,.80]);
       for(const y of [.77,.95])this.box(g,'#a18663',[bench.x,y,bench.z-.45],[3.9,.12,.12]);
@@ -116,7 +113,7 @@ export class RomanticWorld {
       constellation.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points.map(p=>new THREE.Vector3(...p))),new THREE.LineBasicMaterial({color:'#d9c9a3',transparent:true,opacity:.4})));
       spot('star','Connect the little stars','✦',[-1.1,3.4,-4]);
     }else{
-      this.ground(g,6.2,4.4,'#82715b');this.rail(g,-2.9,-2,5.8,true);
+      this.ground(g,6.2,4.4);this.rail(g,-2.9,-2,5.8,true);
       this.rail(g,-2.9,-2,3.7);this.rail(g,2.9,-2,3.7);
       const flowers=new THREE.Group();flowers.userData.dynamic=true;g.add(flowers);record.keptFlowers=flowers;
       for(const x of [-2.3,2.3])this.flower(flowers,x,-1.2,'#dba7a1');

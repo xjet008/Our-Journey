@@ -103,3 +103,11 @@ The invitation platform, world landings and connecting paths share a warm limest
 The envelope waits on the table until clicked. It lifts into a large, scrollable reading dialog while the world and background films pause. Closing it (or pressing Escape) folds it back to the table; only after the return finishes does the distance chapter begin. Repeated clicks share the same transition, and reset or page exit cancels pending continuation. Reloading returns to the closed envelope. Personalized letters remain editable in settings; gentler motion uses brief fades.
 
 Validation: all 23 Node tests pass, including closing during opening, repeated close events, and cancellation at every return stage. Desktop browser interaction verified clicking the envelope, reading, closing, Escape and continuing. Browser geometry checks also verify that the world pauses while reading, the envelope returns, and its click target fits five camera sizes, alongside existing walking, pose and bench clearance checks. Physical phone interaction remains unverified.
+
+## Dark floors and continuous platform edges
+
+All floors now use matte charcoal tiles, subdued grout and dark matching foundations. The invitation platform uses one solid cylinder with a tiled cap; world floors and connectors use solid extrusions with a common top height and thickness. Tile coordinates follow world position so the pattern aligns across adjoining surfaces.
+
+The lake deck and bench bay form a single landing. This removes the lower overlapping bank, exposed lip and stepped edge visible beneath the former deck. The bench approach remains open.
+
+Validation: all 23 Node tests and 38,404 sampled world frames pass. Ten raycasts across the former bench-floor seam each hit one floor at the same height. Existing body clearance, walking, bench seating, letter flow and camera checks remain passing.

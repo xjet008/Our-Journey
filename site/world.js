@@ -6,7 +6,7 @@ import {GuidedCamera, AdaptiveQuality} from './cinematic-camera.js';
 import {bench} from './world-layout.js';
 import {WalkingLeg, PenguinStride} from './walking.js';
 import {flowerGiftPose,FLOWER_GIFT_DURATION} from './flower-gift.js';
-import {createTileFinish,tileUV,tileRectangle} from './tiled-floor.js';
+import {createTileFinish,tileUV,tileDeck} from './tiled-floor.js';
 
 const TAU = Math.PI * 2;
 const FLOOR_LIMIT = 1.24;
@@ -504,9 +504,9 @@ export class JourneyWorld {
     this.contactShadows=[this.male,this.female].map(()=>{const s=new THREE.Mesh(shadowGeometry,new THREE.MeshBasicMaterial({color:'#27332d',transparent:true,opacity:.20,depthWrite:false}));s.rotation.x=-Math.PI/2;s.scale.set(.48,.32,1);this.world.add(s);return s;});
     this.particlesAnchor=new THREE.Group();this.world.add(this.particlesAnchor);
     this.particlesAnchor.add(this.snow,...this.hearts.map(h=>h.mesh),...this.stars);
-    const path=mesh(new THREE.BoxGeometry(4.7,.12,2.5),material('#90745a'),this.world,[0,-.10,-2.7]);
+    const path=new THREE.Group();path.position.z=-2.7;this.world.add(path);
+    tileDeck(path,this.tileFinish,material('#2d322b',1),4.7,2.5);
     this.gatewayPath=path;
-    tileRectangle(path,this.tileFinish,4.7,2.5,0,0,.062);
     this.resize = this.resize.bind(this);
     this.frame = this.frame.bind(this);
     this.observer = new ResizeObserver(this.resize);
@@ -520,13 +520,12 @@ export class JourneyWorld {
   buildIsland() {
     this.island = new THREE.Group();
     this.world.add(this.island);
-    const soil = material('#81705a', .9);
-    mesh(new THREE.CylinderGeometry(2.9, 2.53, .28, 64), soil, this.island, [0, -.18, 0], [1, 1, .72]);
-    const surface=new THREE.CircleGeometry(2.9,64);surface.rotateX(-Math.PI/2);surface.scale(1,1,.72);tileUV(surface);
-    const top = mesh(surface,this.tileFinish,this.island,[0,.005,0]);
+    const soil = material('#2d322b', 1);
+    const surface=new THREE.CylinderGeometry(2.9,2.53,.28,64);surface.scale(1,1,.72);tileUV(surface);
+    const top = mesh(surface,[soil,this.tileFinish,soil],this.island,[0,-.14,0]);
     top.receiveShadow = true;
     top.castShadow = false;
-    const rim = mesh(new THREE.TorusGeometry(2.87, .035, 12, 96), material('#a59379'), this.island, [0, -.004, 0], [1, .72, 1]);
+    const rim = mesh(new THREE.TorusGeometry(2.87, .025, 12, 96), soil, this.island, [0, -.027, 0], [1, .72, 1]);
     rim.rotation.x = Math.PI / 2;
     this.lanterns = [];
     this.glowMap = glowTexture();
