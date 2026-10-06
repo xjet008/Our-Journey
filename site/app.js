@@ -118,7 +118,16 @@ function showHotspots(points){
  const enabled=['letterClosed','explore','final'].includes(state.scene),root=$('#worldHotspots');
  const ids=enabled?points.map(p=>p.id).join(','):'';
  if(root.dataset.ids!==ids){root.dataset.ids=ids;root.innerHTML=enabled?points.map(p=>`<button class="world-hotspot" data-world="${p.id}" aria-label="${escape(p.label)}"><span aria-hidden="true">${p.icon}</span><small>${escape(p.label)}</small></button>`).join(''):'';}
- if(enabled)points.forEach(p=>{const el=root.querySelector(`[data-world="${p.id}"]`);if(el){el.style.left=p.x+'%';el.style.top=p.y+'%';const stage=$('#worldStage').getBoundingClientRect(),text=story.getBoundingClientRect(),x=stage.left+stage.width*p.x/100,y=stage.top+stage.height*p.y/100;const safe=y>90&&(innerWidth<=700?y<text.top-30:x>text.right+35&&y<innerHeight-170);el.hidden=!p.visible||!safe;}});
+ if(enabled)points.forEach(p=>{
+  const el=root.querySelector(`[data-world="${p.id}"]`);if(!el)return;
+  const stage=$('#worldStage').getBoundingClientRect(),text=story.getBoundingClientRect();
+  let x=stage.left+stage.width*p.x/100;const y=stage.top+stage.height*p.y/100;
+  // Keep the bench's label clear of the reading panel at narrower desktop widths.
+  if(p.id==='bench'&&innerWidth>700)x=Math.max(x,text.right+64);
+  el.style.left=(x-stage.left)/stage.width*100+'%';el.style.top=p.y+'%';
+  const safe=y>90&&(innerWidth<=700?y<text.top-30:x>text.right+35&&y<innerHeight-170);
+  el.hidden=!p.visible||!safe;
+ });
 }
 function discover(id){
  const marker=$('#worldHotspots').querySelector(`[data-world="${id}"]>span`);
