@@ -35,10 +35,10 @@ function glowTexture() {
   canvas.width = canvas.height = 128;
   const ctx = canvas.getContext('2d');
   const gradient = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
-  gradient.addColorStop(0, 'rgba(255,246,218,1)');
-  gradient.addColorStop(.14, 'rgba(255,233,176,.92)');
-  gradient.addColorStop(.36, 'rgba(255,203,133,.2)');
-  gradient.addColorStop(1, 'rgba(255,203,133,0)');
+  gradient.addColorStop(0, 'rgba(255,242,245,1)');
+  gradient.addColorStop(.14, 'rgba(248,218,229,.92)');
+  gradient.addColorStop(.36, 'rgba(238,158,181,.2)');
+  gradient.addColorStop(1, 'rgba(238,158,181,0)');
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, 128, 128);
   const texture = new THREE.CanvasTexture(canvas);
@@ -56,21 +56,6 @@ function heartGeometry() {
   return new THREE.ExtrudeGeometry(shape, { depth: .09, bevelEnabled: true, bevelSegments: 3, steps: 1, bevelSize: .035, bevelThickness: .025, curveSegments: 14 });
 }
 
-function scarf(parent, color) {
-  const g = new THREE.Group();
-  const mat = material(color, .94);
-  const wrap = mesh(new THREE.TorusGeometry(.365, .091, 12, 52), mat, g, [0, 1.415, .005], [1.04, 1, .94]);
-  wrap.rotation.x = Math.PI / 2;
-  tube(g, [[.18, 1.43, .34], [.21, 1.29, .425], [.19, 1.07, .465], [.28, .97, .44]], .078, mat);
-  tube(g, [[.01, 1.42, .36], [-.02, 1.32, .445], [.025, 1.18, .474]], .062, mat);
-  const fringeMat = material(color, 1);
-  for (let i = 0; i < 4; i++) {
-    tube(g, [[.215 + i * .037, .984, .44], [.211 + i * .037, .924, .438]], .011, fringeMat, 5);
-  }
-  parent.add(g);
-  return g;
-}
-
 function flower(parent, color, position = [0, 0, 0], scale = .14) {
   const group = new THREE.Group();
   const petals = material(color, .83);
@@ -86,17 +71,77 @@ function flower(parent, color, position = [0, 0, 0], scale = .14) {
   return group;
 }
 
+function rose(parent, color, position, scale = .15) {
+  const group = new THREE.Group();
+  const petalMat = material(color, .55);
+  const innerMat = material(new THREE.Color(color).lerp(new THREE.Color('#f8dae5'), .3), .5);
+  for (let ring = 0; ring < 3; ring++) {
+    const count = ring === 2 ? 3 : 5;
+    const radius = .53 - ring * .17;
+    for (let i = 0; i < count; i++) {
+      const angle = i * TAU / count + ring * .7;
+      const petal = sphere(group, ring ? innerMat : petalMat,
+        [Math.cos(angle) * radius, Math.sin(angle) * radius, ring * .13],
+        [.39 - ring * .05, .27 - ring * .035, .15], 20);
+      petal.rotation.set(.1 * Math.sin(angle), -.16 * Math.cos(angle), angle + .25);
+    }
+  }
+  sphere(group, innerMat, [0, 0, .36], [.17, .17, .12], 20);
+  const leafMat = material('#a4b19c', .8);
+  const leaf = sphere(group, leafMat, [.5, -.48, -.03], [.43, .17, .06], 20);
+  leaf.rotation.z = -.65;
+  group.position.set(...position);
+  group.scale.setScalar(scale);
+  parent.add(group);
+  return group;
+}
+
+function hairBow(parent, accent, pearl, position = [-.317, 2.066, .186]) {
+  const bow = new THREE.Group();
+  bow.position.set(...position);
+  bow.rotation.set(0, -.25, -.28);
+  sphere(bow, accent, [-.09, .004, 0], [.121, .083, .054], 24).rotation.z = -.32;
+  sphere(bow, accent, [.09, .004, 0], [.121, .083, .054], 24).rotation.z = .32;
+  sphere(bow, pearl, [0, .004, .044], [.036, .038, .027], 20);
+  parent.add(bow);
+  return bow;
+}
+
+function silkTail(parent, mat, points, width = .047) {
+  const curve = new THREE.CatmullRomCurve3(points.map(point => new THREE.Vector3(...point)));
+  const vertices = [], indices = [];
+  const segments = 24;
+  for (let i = 0; i <= segments; i++) {
+    const t = i / segments;
+    const center = curve.getPoint(t);
+    const tangent = curve.getTangent(t);
+    const edge = new THREE.Vector3(-tangent.y, tangent.x, 0).normalize();
+    const halfWidth = width * (1 - t * .22);
+    vertices.push(center.x - edge.x * halfWidth, center.y - edge.y * halfWidth, center.z - edge.z * halfWidth);
+    vertices.push(center.x + edge.x * halfWidth, center.y + edge.y * halfWidth, center.z + edge.z * halfWidth);
+    if (i < segments) {
+      const a = i * 2;
+      indices.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
+    }
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  return mesh(geometry, mat, parent);
+}
+
 class Penguin {
   constructor(female = false) {
     this.female = female;
     this.group = new THREE.Group();
     this.body = new THREE.Group();
     this.group.add(this.body);
-    this.dark = material(female ? '#354052' : '#293748', .53);
-    this.cream = material('#fff6df', .83);
-    const orange = material('#edaa64', .67);
-    const black = material('#101c2b', .25);
-    this.torso = sphere(this.body, this.dark, [0, .925, 0], [.575, .81, .445]);
+    this.dark = material(female ? '#655170' : '#353044', .53);
+    this.cream = material('#fff5e9', .83);
+    const orange = material(female ? '#e9ac99' : '#e5ac8d', .67);
+    const black = material('#231e30', .25);
+    this.torso = sphere(this.body, this.dark, [0, .925, 0], [female ? .555 : .575, female ? .79 : .81, .445]);
     this.belly = sphere(this.body, this.cream, [0, .94, .347], [.437, .599, .164]);
     this.head = new THREE.Group();
     this.head.position.set(0, 1.64, .015);
@@ -109,16 +154,23 @@ class Penguin {
     for (const side of [-1, 1]) {
       const eye = new THREE.Group();
       eye.position.set(side * .18, .145, .415);
-      sphere(eye, black, [0, 0, 0], [.062, .079, .042], 24);
-      sphere(eye, material('#ffffff', .2), [-.013, .023, .034], [.014, .019, .009], 12);
-      sphere(eye, material('#8ca5b7', .2), [.016, -.017, .035], [.007, .008, .005], 10);
+      sphere(eye, black, [0, 0, 0], [female ? .073 : .062, female ? .09 : .079, .042], 24);
+      sphere(eye, material('#ffffff', .2), [-.013, .023, .034], [female ? .017 : .014, female ? .022 : .019, .009], 12);
+      sphere(eye, material('#cfacd9', .2), [.016, -.017, .035], [.007, .008, .005], 10);
+      if (female) {
+        for (let lash = 0; lash < 3; lash++) {
+          const x = side * (.034 + lash * .015);
+          const y = .078 - lash * .006;
+          tube(eye, [[x, y, .017], [x + side * .011, y + .017, .021], [x + side * .019, y + .027 - lash * .003, .025]], .006, black, 8);
+        }
+      }
       this.head.add(eye);
       this.eyes.push(eye);
-      const cheekMat = material(female ? '#f1a5aa' : '#e8b99d', 1, { transparent: true, opacity: .56 });
-      sphere(this.head, cheekMat, [side * .3, -.012, .394], [.06, .029, .009], 18);
+      const cheekMat = material(female ? '#ee9eb5' : '#f1c6ad', 1, { transparent: true, opacity: female ? .68 : .38 });
+      sphere(this.head, cheekMat, [side * .3, -.012, .394], [female ? .085 : .06, female ? .04 : .029, .009], 18);
     }
-    sphere(this.head, orange, [0, -.084, .475], [.123, .065, .155], 24);
-    sphere(this.head, material('#d68a48'), [0, -.119, .462], [.098, .025, .117], 24);
+    sphere(this.head, orange, [0, -.084, .475], [female ? .112 : .123, female ? .059 : .065, female ? .143 : .155], 24);
+    sphere(this.head, material(female ? '#cb877f' : '#c58b69'), [0, -.119, .462], [.098, .025, .117], 24);
     sphere(this.head, black, [-.032, -.06, .592], [.007, .005, .007], 10);
     sphere(this.head, black, [.032, -.06, .592], [.007, .005, .007], 10);
     this.feet = [];
@@ -135,7 +187,10 @@ class Penguin {
       this.wings.push(pivot);
       this.body.add(pivot);
     }
-    if (!female) this.scarf = scarf(this.body, '#dda06b');
+    if (!female) {
+      const brooch = mesh(heartGeometry(), material('#ee9eb5', .35, { metalness: .16 }), this.body, [-.285, 1.235, .439], [.085, .085, .085]);
+      brooch.rotation.z = -.2;
+    }
     this.accessory = new THREE.Group();
     this.body.add(this.accessory);
     this.gift = new THREE.Group();
@@ -144,7 +199,7 @@ class Penguin {
     const green = material('#7b977a');
     tube(this.gift, [[0, -.16, 0], [-.025, .07, 0], [0, .23, .035]], .012, green, 12);
     sphere(this.gift, green, [.054, .04, .008], [.09, .034, .018], 16).rotation.z = .65;
-    flower(this.gift, '#d99fb6', [0, .24, .035], .115);
+    rose(this.gift, '#ee9eb5', [0, .24, .035], .115);
     this.body.add(this.gift);
     this.target = new THREE.Vector3(female ? .69 : -.65, 0, 0);
     this.group.position.copy(this.target);
@@ -154,42 +209,65 @@ class Penguin {
     this.blinkAt = 2 + Math.random() * 3;
     this.blinkStart = -10;
     this.accessoryName = 'bow';
-    this.accent = '#d597ae';
+    this.accent = '#ee9eb5';
     if (female) this.setAccessory('bow', this.accent);
   }
 
-  setAccessory(name = 'bow', color = '#d597ae') {
+  setAccessory(name = 'bow', color = '#ee9eb5') {
     this.accessoryName = name;
     this.accent = color;
-    while (this.accessory.children.length) {
-      const obj = this.accessory.children[0];
-      obj.traverse(n => { if (n.geometry) n.geometry.dispose(); if (n.material) n.material.dispose(); });
-      this.accessory.remove(obj);
-    }
-    const accent = material(color, .8);
+    const geometries = new Set(), materials = new Set();
+    this.accessory.traverse(obj => {
+      if (obj.geometry) geometries.add(obj.geometry);
+      if (obj.material) (Array.isArray(obj.material) ? obj.material : [obj.material]).forEach(mat => materials.add(mat));
+    });
+    geometries.forEach(geometry => geometry.dispose());
+    materials.forEach(mat => { if (mat !== this.dark && mat !== this.cream) mat.dispose(); });
+    this.accessory.clear();
+    const accent = material(color, .48);
+    const pearl = material('#f8dae5', .24, { metalness: .12 });
     const type = String(name).toLowerCase();
-    if (type.includes('scarf')) {
-      scarf(this.accessory, color);
-    } else if (type.includes('flower')) {
-      const bloom = flower(this.accessory, color, [-.31, 2.053, .232], .17);
+    if (type.includes('flower')) {
+      const bloom = rose(this.accessory, color, [-.31, 2.053, .232], .17);
       bloom.rotation.z = -.18;
       bloom.rotation.y = -.3;
-    } else if (type.includes('hat') || type.includes('beanie')) {
-      const cap = mesh(new THREE.SphereGeometry(.455, 32, 20, 0, TAU, 0, Math.PI / 2), accent, this.accessory, [0, 1.99, 0], [1, .58, 1]);
-      cap.rotation.z = -.07;
-      const cuff = mesh(new THREE.TorusGeometry(.431, .065, 10, 44), accent, this.accessory, [0, 1.998, .005]);
-      cuff.rotation.x = Math.PI / 2;
-      sphere(this.accessory, this.cream, [-.031, 2.302, -.01], [.105, .105, .105], 20);
+    } else if (type === 'tiara') {
+      const gold = material('#efccb6', .3, { metalness: .65 });
+      tube(this.accessory, [[-.32, 2.025, .235], [-.17, 2.065, .326], [0, 2.079, .351], [.17, 2.065, .326], [.32, 2.025, .235]], .012, gold, 32);
+      for (let i = -1; i <= 1; i++) {
+        const x = i * .15;
+        const top = i === 0 ? 2.266 : 2.195;
+        tube(this.accessory, [[x - .072, 2.066, .313], [x - .045, top - .03, .307], [x, top, .307], [x + .045, top - .03, .307], [x + .072, 2.066, .313]], .008, gold, 20);
+        const jewel = mesh(new THREE.OctahedronGeometry(i === 0 ? .037 : .025), accent, this.accessory, [x, top - .024, .323]);
+        jewel.scale.set(.83, 1.2, .5);
+      }
+      for (let i = 0; i < 9; i++) sphere(this.accessory, pearl, [-.28 + i * .07, 2.07 - Math.abs(i - 4) * .005, .326 - Math.abs(i - 4) * .014], [.016, .016, .016], 14);
+    } else if (type === 'pearls') {
+      for (let i = 0; i < 17; i++) {
+        const angle = -.5 * Math.PI + i / 16 * Math.PI;
+        sphere(this.accessory, pearl, [Math.sin(angle) * .354, 1.442 - Math.cos(angle) * .08, .097 + Math.cos(angle) * .316], [.027, .027, .027], 16);
+      }
+      const pendant = mesh(heartGeometry(), accent, this.accessory, [0, 1.302, .442], [.048, .048, .04]);
+      pendant.rotation.z = -.06;
+    } else if (type === 'ribbon') {
+      hairBow(this.accessory, accent, pearl, [-.35, 2.04, .194]);
+      const silk = material(color, .38, { side: THREE.DoubleSide });
+      silkTail(this.accessory, silk, [[-.37, 2.02, .20], [-.50, 1.86, .23], [-.52, 1.68, .21], [-.62, 1.51, .25]], .043);
+      silkTail(this.accessory, silk, [[-.31, 2.02, .19], [-.41, 1.83, .27], [-.44, 1.65, .30], [-.39, 1.53, .35]], .034);
+    } else if (type === 'heart') {
+      const clip = new THREE.Group();
+      clip.position.set(-.347, 2.04, .229);
+      clip.rotation.set(-.06, -.24, -.28);
+      mesh(heartGeometry(), accent, clip, [0, 0, 0], [.19, .19, .14]);
+      sphere(clip, pearl, [.032, .066, .028], [.018, .018, .012], 14);
+      this.accessory.add(clip);
     } else if (type !== 'none' && type !== 'nothing') {
-      const bow = new THREE.Group();
-      bow.position.set(-.317, 2.066, .186);
-      bow.rotation.z = -.28;
-      bow.rotation.y = -.25;
-      sphere(bow, accent, [-.09, .004, 0], [.121, .083, .054], 24).rotation.z = -.32;
-      sphere(bow, accent, [.09, .004, 0], [.121, .083, .054], 24).rotation.z = .32;
-      sphere(bow, accent, [0, .004, .025], [.044, .048, .046], 20);
-      this.accessory.add(bow);
+      hairBow(this.accessory, accent, pearl);
     }
+    const activeMaterials = new Set();
+    this.accessory.traverse(obj => { if (obj.material) activeMaterials.add(obj.material); });
+    if (!activeMaterials.has(accent)) accent.dispose();
+    if (!activeMaterials.has(pearl)) pearl.dispose();
   }
 
   animate(t, dt, reduced, state) {
@@ -201,11 +279,11 @@ class Penguin {
     const sitting = state.scene === 'final' || state.reaction === 'sitting';
     this.body.position.y = bob + (sitting ? -.10 : 0) + (walking ? Math.abs(Math.sin(tempo)) * .046 : 0);
     this.torso.position.y = lerp(this.torso.position.y, sitting ? .85 : .925, 1 - Math.exp(-dt * 6));
-    this.torso.scale.y = lerp(this.torso.scale.y, sitting ? .72 : .81, 1 - Math.exp(-dt * 6));
+    this.torso.scale.y = lerp(this.torso.scale.y, sitting ? (this.female ? .7 : .72) : (this.female ? .79 : .81), 1 - Math.exp(-dt * 6));
     this.belly.position.y = lerp(this.belly.position.y, sitting ? .82 : .94, 1 - Math.exp(-dt * 6));
     this.belly.scale.y = lerp(this.belly.scale.y, sitting ? .51 : .599, 1 - Math.exp(-dt * 6));
     this.body.rotation.z = walking ? Math.sin(tempo) * .045 : 0;
-    this.head.rotation.set(0, 0, 0);
+    this.head.rotation.set(0, 0, this.female ? .025 : 0);
     const leftRest = sitting ? -.6 : -.23;
     const rightRest = sitting ? .6 : .23;
     let left = leftRest, right = rightRest;
@@ -311,7 +389,7 @@ export class JourneyWorld {
     this.cameraTarget = new THREE.Vector3(0, .94, 0);
     this.desiredCameraTarget = this.cameraTarget.clone();
     this.camera.position.set(3.3, 2.65, 7.8);
-    this.keyLight = new THREE.DirectionalLight('#ffdebc', 3.15);
+    this.keyLight = new THREE.DirectionalLight('#f8dae5', 3.15);
     this.keyLight.position.set(-3.5, 6, 5);
     this.keyLight.castShadow = true;
     this.keyLight.shadow.mapSize.set(1024, 1024);
@@ -325,8 +403,8 @@ export class JourneyWorld {
     this.keyLight.shadow.normalBias = .018;
     this.keyLight.shadow.radius = 4;
     this.scene.add(this.keyLight);
-    this.scene.add(new THREE.HemisphereLight('#dce7f2', '#778391', 2.1));
-    const rim = new THREE.DirectionalLight('#aecfe6', 2.0);
+    this.scene.add(new THREE.HemisphereLight('#f8e4ef', '#857184', 2.1));
+    const rim = new THREE.DirectionalLight('#cfacd9', 2.0);
     rim.position.set(2, 3, -5);
     this.scene.add(rim);
     this.world = new THREE.Group();
@@ -352,8 +430,8 @@ export class JourneyWorld {
   buildIsland() {
     this.island = new THREE.Group();
     this.world.add(this.island);
-    const ice = material('#b7cad4', .88);
-    const snow = material('#f5f1e8', .98);
+    const ice = material('#c6b1cd', .88);
+    const snow = material('#fff2f4', .98);
     mesh(new THREE.CylinderGeometry(2.9, 2.53, .28, 64), ice, this.island, [0, -.18, 0], [1, 1, .72]);
     const top = sphere(this.island, snow, [0, -.055, 0], [2.96, .11, 2.12], 64);
     top.receiveShadow = true;
@@ -368,13 +446,13 @@ export class JourneyWorld {
     this.glowMap = glowTexture();
     this.addLantern(-2.04, .93, 1);
     this.addLantern(2.12, -.62, .82);
-    const pebbleMat = material('#d8c7c7', .9);
+    const pebbleMat = material('#e3c8d4', .9);
     for (let i = 0; i < 6; i++) {
       const x = -.74 + i * .25;
       const stone = sphere(this.island, pebbleMat, [x, .057, 1.11 + Math.sin(i) * .07], [.086, .024, .065], 16);
       stone.rotation.y = i * .7;
     }
-    const gold = material('#d9bfa0', .75);
+    const gold = material('#f1c6ad', .75);
     const littleHeart = mesh(heartGeometry(), gold, this.island, [1.48, .08, .98], [.125, .125, .125]);
     littleHeart.rotation.x = -Math.PI / 2;
     littleHeart.rotation.z = -.3;
@@ -384,11 +462,11 @@ export class JourneyWorld {
     const g = new THREE.Group();
     g.position.set(x, .035, z);
     g.scale.setScalar(scale);
-    const bronze = material('#7a6359', .46, { metalness: .54 });
+    const bronze = material('#926f7e', .46, { metalness: .54 });
     mesh(new THREE.CylinderGeometry(.135, .165, .075, 24), bronze, g, [0, .04, 0]);
     mesh(new THREE.CylinderGeometry(.135, .145, .05, 24), bronze, g, [0, .4, 0]);
     mesh(new THREE.ConeGeometry(.2, .11, 4), bronze, g, [0, .478, 0]).rotation.y = Math.PI / 4;
-    const glass = material('#ffd19a', .22, { transparent: true, opacity: .24, emissive: '#eac286', emissiveIntensity: .35, side: THREE.DoubleSide });
+    const glass = material('#f8dae5', .22, { transparent: true, opacity: .24, emissive: '#ee9eb5', emissiveIntensity: .35, side: THREE.DoubleSide });
     mesh(new THREE.CylinderGeometry(.125, .125, .3, 20, 1, true), glass, g, [0, .228, 0]);
     for (let i = 0; i < 4; i++) {
       const a = i * Math.PI / 2 + Math.PI / 4;
@@ -396,12 +474,12 @@ export class JourneyWorld {
     }
     const handle = mesh(new THREE.TorusGeometry(.064, .009, 6, 20, Math.PI), bronze, g, [0, .552, 0]);
     handle.rotation.z = 0;
-    const flame = sphere(g, material('#ffe4ac', .3, { emissive: '#ffbb60', emissiveIntensity: 2.3 }), [0, .212, 0], [.033, .073, .033], 16);
+    const flame = sphere(g, material('#ffe8de', .3, { emissive: '#f1c6ad', emissiveIntensity: 2.3 }), [0, .212, 0], [.033, .073, .033], 16);
     const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.glowMap, transparent: true, opacity: .47, depthWrite: false, blending: THREE.AdditiveBlending }));
     sprite.position.y = .24;
     sprite.scale.set(.79, .79, 1);
     g.add(sprite);
-    const light = new THREE.PointLight('#ffc47f', 1.7, 3.5, 2);
+    const light = new THREE.PointLight('#f6c4d0', 1.7, 3.5, 2);
     light.position.y = .3;
     g.add(light);
     this.island.add(g);
@@ -412,10 +490,10 @@ export class JourneyWorld {
     this.door = new THREE.Group();
     this.door.position.set(1.67, -.005, -.88);
     this.door.rotation.y = -.23;
-    const frameMat = material('#ead2bf', .84, { emissive: '#a9806a', emissiveIntensity: .12 });
+    const frameMat = material('#f1c6ad', .84, { emissive: '#ad8195', emissiveIntensity: .12 });
     const archPoints = [[-.62, 0, 0], [-.62, .65, 0], [-.62, 1.45, 0], [-.55, 1.85, 0], [-.3, 2.12, 0], [0, 2.21, 0], [.3, 2.12, 0], [.55, 1.85, 0], [.62, 1.45, 0], [.62, .65, 0], [.62, 0, 0]];
     tube(this.door, archPoints, .061, frameMat, 64);
-    tube(this.door, archPoints.map(p => [p[0] * .96, p[1] * .99, .044]), .012, material('#ffe3b9', .6, { emissive: '#ffe3b9', emissiveIntensity: 1.3 }), 64);
+    tube(this.door, archPoints.map(p => [p[0] * .96, p[1] * .99, .044]), .012, material('#f8dae5', .6, { emissive: '#f8dae5', emissiveIntensity: 1.3 }), 64);
     mesh(new THREE.BoxGeometry(1.44, .058, .51), frameMat, this.door, [0, .025, 0]);
     const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.glowMap, transparent: true, opacity: .16, depthWrite: false, blending: THREE.AdditiveBlending, color: '#efc4c2' }));
     sprite.position.set(0, 1.2, -.035);
@@ -437,7 +515,7 @@ export class JourneyWorld {
   buildTable() {
     this.table = new THREE.Group();
     this.table.position.set(-1.65, .005, .27);
-    const wood = material('#a28877', .81);
+    const wood = material('#a78897', .81);
     mesh(new THREE.CylinderGeometry(.45, .45, .065, 40), wood, this.table, [0, .73, 0]);
     for (let i = 0; i < 3; i++) {
       const angle = i * TAU / 3;
@@ -445,9 +523,9 @@ export class JourneyWorld {
       leg.rotation.z = -Math.cos(angle) * .09;
       leg.rotation.x = Math.sin(angle) * .09;
     }
-    const letter = mesh(new THREE.BoxGeometry(.44, .008, .31), material('#fff2d5', .98), this.table, [-.035, .769, .02]);
+    const letter = mesh(new THREE.BoxGeometry(.44, .008, .31), material('#fff4ee', .98), this.table, [-.035, .769, .02]);
     letter.rotation.y = -.22;
-    const seal = mesh(heartGeometry(), material('#bb7587', .8), this.table, [.06, .788, .015], [.043, .043, .03]);
+    const seal = mesh(heartGeometry(), material('#d58ba5', .8), this.table, [.06, .788, .015], [.043, .043, .03]);
     seal.rotation.x = -Math.PI / 2;
     this.table.visible = false;
     this.world.add(this.table);
@@ -464,11 +542,11 @@ export class JourneyWorld {
     }
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute('position', new THREE.BufferAttribute(this.snowPositions, 3));
-    this.snow = new THREE.Points(geometry, new THREE.PointsMaterial({ color: '#fff6e7', map: this.glowMap, transparent: true, opacity: .53, size: .063, depthWrite: false, sizeAttenuation: true }));
+    this.snow = new THREE.Points(geometry, new THREE.PointsMaterial({ color: '#f8dae5', map: this.glowMap, transparent: true, opacity: .53, size: .063, depthWrite: false, sizeAttenuation: true }));
     this.scene.add(this.snow);
     this.hearts = [];
     const heartGeo = heartGeometry();
-    const heartMat = material('#e9a3b3', .42, { emissive: '#c47a91', emissiveIntensity: .17 });
+    const heartMat = material('#ee9eb5', .42, { emissive: '#c77d99', emissiveIntensity: .17 });
     for (let i = 0; i < 14; i++) {
       const heart = mesh(heartGeo, heartMat, this.world, [0, 0, 0], [.095, .095, .095]);
       heart.visible = false;
@@ -511,7 +589,7 @@ export class JourneyWorld {
     this.door.visible = name === 'customize' || name === 'journey';
     this.table.visible = name === 'letter';
     this.door.scale.setScalar(name === 'journey' ? .82 : 1);
-    this.keyLight.color.set(name === 'memory' || name === 'final' ? '#ffd7ad' : name === 'distance' ? '#e1e6f6' : '#ffdfc1');
+    this.keyLight.color.set(name === 'memory' || name === 'final' ? '#f1c6ad' : name === 'distance' ? '#e6d4ef' : '#f8dae5');
     this.keyLight.intensity = name === 'distance' ? 2.8 : 3.15;
     if (name === 'welcome') {
       this.setCompanion(false);
@@ -536,7 +614,7 @@ export class JourneyWorld {
     if (visible) this.female.target.set(.69, 0, .04);
   }
 
-  setAccessory(name, color = '#d597ae') {
+  setAccessory(name, color = '#ee9eb5') {
     if (this.failed || this.disposed) return;
     this.female.setAccessory(name, color);
     this.react('happy');

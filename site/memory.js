@@ -1,9 +1,9 @@
 /* A small, self-contained keepsake renderer. No remote assets are required. */
 
-const PAPER = '#fff8ec';
-const INK = '#20364b';
-const CORAL = '#c47c7f';
-const GOLD = '#c7a575';
+const PAPER = '#fff5f8';
+const INK = '#542c49';
+const CORAL = '#d8779c';
+const GOLD = '#bf91ae';
 const SERIF = 'Georgia, "Times New Roman", serif';
 const SCRIPT = '"Segoe Script", "Apple Chancery", "URW Chancery L", cursive';
 const WIDTH = 1000;
@@ -218,44 +218,109 @@ function paper(ctx, height) {
   [[58, 60], [942, 60], [58, height - 60], [942, height - 60]].forEach(([x, y]) => star(ctx, x, y, 8));
 }
 
-function penguin(ctx, x, y, scale, angle, scarf) {
+function drawFeminineFeatures(ctx, accessory, accent) {
+  ctx.strokeStyle = INK;
+  ctx.lineWidth = 2.3;
+  ctx.lineCap = 'round';
+  [-25, 25].forEach((eye) => {
+    [-1, 0, 1].forEach((lash) => {
+      ctx.beginPath();
+      ctx.moveTo(eye + lash * 3, -50);
+      ctx.lineTo(eye + lash * 6, -59 + Math.abs(lash));
+      ctx.stroke();
+    });
+  });
+  heart(ctx, -40, -23, 7, '#efabc1');
+  heart(ctx, 40, -23, 7, '#efabc1');
+  ctx.fillStyle = accent;
+  if (accessory === 'flower') {
+    for (let petal = 0; petal < 6; petal++) {
+      const angle = petal * Math.PI / 3;
+      ctx.beginPath();
+      ctx.ellipse(50 + Math.cos(angle) * 12, -91 + Math.sin(angle) * 12, 9, 13, angle, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = '#fff5e8';
+    ctx.beginPath(); ctx.arc(50, -91, 8, 0, Math.PI * 2); ctx.fill();
+  } else if (accessory === 'tiara') {
+    ctx.strokeStyle = GOLD;
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(-34, -105); ctx.lineTo(-28, -122); ctx.lineTo(-14, -111);
+    ctx.lineTo(0, -132); ctx.lineTo(14, -111); ctx.lineTo(28, -122); ctx.lineTo(34, -105);
+    ctx.stroke();
+    [[-28, -122], [0, -132], [28, -122]].forEach(([x, y]) => heart(ctx, x, y, 5, accent));
+  } else if (accessory === 'pearls') {
+    ctx.strokeStyle = GOLD;
+    ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.ellipse(0, 6, 39, 24, 0, 0, Math.PI); ctx.stroke();
+    for (let bead = 0; bead < 9; bead++) {
+      const angle = bead * Math.PI / 8;
+      ctx.fillStyle = '#fff8f5';
+      ctx.beginPath(); ctx.arc(Math.cos(angle) * 39, 6 + Math.sin(angle) * 24, 5.5, 0, Math.PI * 2); ctx.fill();
+      ctx.stroke();
+    }
+    heart(ctx, 0, 36, 6, accent);
+  } else if (accessory === 'ribbon') {
+    ctx.beginPath();
+    ctx.moveTo(39, -96); ctx.bezierCurveTo(71, -103, 75, -79, 52, -74);
+    ctx.bezierCurveTo(69, -67, 71, -49, 56, -42); ctx.lineTo(61, -58);
+    ctx.bezierCurveTo(52, -55, 50, -72, 43, -78); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#fff8f5';
+    ctx.beginPath(); ctx.arc(45, -94, 5, 0, Math.PI * 2); ctx.fill();
+  } else if (accessory === 'heart') {
+    heart(ctx, 45, -95, 20, accent);
+    star(ctx, 67, -80, 5, '#fff5e8');
+    star(ctx, 26, -112, 4, GOLD);
+  } else {
+    // An older saved choice receives the new bow as a gentle default.
+    ctx.beginPath();
+    ctx.ellipse(34, -95, 20, 13, -.35, 0, Math.PI * 2);
+    ctx.ellipse(65, -95, 20, 13, .35, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath(); ctx.moveTo(46, -90); ctx.lineTo(36, -64); ctx.lineTo(49, -69); ctx.lineTo(53, -87); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#fff8f5';
+    ctx.beginPath(); ctx.arc(49, -95, 7, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+function penguin(ctx, x, y, scale, angle, accessory, accent = CORAL) {
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(angle);
   ctx.scale(scale, scale);
-  ctx.fillStyle = '#d6b16d';
+  ctx.fillStyle = '#d79aab';
   ctx.beginPath(); ctx.ellipse(-31, 112, 25, 10, -.15, 0, Math.PI * 2); ctx.ellipse(31, 112, 25, 10, .15, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = '#183448';
+  ctx.fillStyle = '#4a2843';
   ctx.beginPath(); ctx.ellipse(0, 0, 78, 116, 0, 0, Math.PI * 2); ctx.fill();
   ctx.beginPath(); ctx.ellipse(-77, 16, 20, 63, .42, 0, Math.PI * 2); ctx.ellipse(77, 16, 20, 63, -.42, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = '#fffdf6';
+  ctx.fillStyle = '#fff6f2';
   ctx.beginPath(); ctx.ellipse(0, 27, 57, 77, 0, 0, Math.PI * 2); ctx.fill();
   ctx.beginPath(); ctx.ellipse(-25, -42, 32, 35, -.12, 0, Math.PI * 2); ctx.ellipse(25, -42, 32, 35, .12, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = '#143047';
+  ctx.fillStyle = INK;
   [-25, 25].forEach((eye) => { ctx.beginPath(); ctx.ellipse(eye, -45, 5, 8, 0, 0, Math.PI * 2); ctx.fill(); });
-  ctx.fillStyle = '#e0b174';
+  ctx.fillStyle = '#e3a4b3';
   ctx.beginPath(); ctx.moveTo(-12, -24); ctx.lineTo(12, -24); ctx.lineTo(0, -10); ctx.closePath(); ctx.fill();
-  ctx.fillStyle = 'rgba(211,145,143,.6)';
+  ctx.fillStyle = 'rgba(227,142,172,.65)';
   [-39, 39].forEach((cheek) => { ctx.beginPath(); ctx.ellipse(cheek, -24, 13, 6, 0, 0, Math.PI * 2); ctx.fill(); });
-  ctx.fillStyle = scarf;
-  roundedPath(ctx, -59, -5, 118, 20, 9); ctx.fill();
-  roundedPath(ctx, 24, 5, 20, 57, 6); ctx.fill();
+  if (accessory) drawFeminineFeatures(ctx, accessory, accent);
+  else heart(ctx, -32, 10, 9, CORAL);
   ctx.restore();
 }
 
-function fallbackSelfie(ctx, x, y, w, h, accent) {
+function fallbackSelfie(ctx, x, y, w, h, accent, accessory) {
   const sky = ctx.createLinearGradient(x, y, x, y + h);
-  sky.addColorStop(0, '#dce4ec');
-  sky.addColorStop(.55, '#f7dfdc');
-  sky.addColorStop(1, '#fffaf2');
+  sky.addColorStop(0, '#dfc0d7');
+  sky.addColorStop(.55, '#f8d7e3');
+  sky.addColorStop(1, '#fff5f1');
   ctx.fillStyle = sky;
   ctx.fillRect(x, y, w, h);
   ctx.fillStyle = 'rgba(255,253,246,.72)';
   ctx.beginPath(); ctx.ellipse(x + w / 2, y + h, w * .8, h * .32, 0, 0, Math.PI * 2); ctx.fill();
   for (let i = 0; i < 16; i++) star(ctx, x + 46 + ((i * 113) % (w - 92)), y + 28 + ((i * 43) % (h * .48)), i % 3 === 0 ? 5 : 2.5, '#fffdf8');
   const scale = Math.min(w / 600, h / 390);
-  penguin(ctx, x + w * .405, y + h * .59, scale, -.085, CORAL);
-  penguin(ctx, x + w * .605, y + h * .59, scale, .085, accent);
+  penguin(ctx, x + w * .405, y + h * .59, scale, -.085);
+  penguin(ctx, x + w * .605, y + h * .59, scale, .085, accessory || 'bow', accent);
   heart(ctx, x + w / 2, y + h * .18, 22, CORAL);
 }
 
@@ -394,7 +459,7 @@ function paintLayout(ctx, data, layout, selfie) {
         const ratio = Math.min(w / selfie.naturalWidth, h / selfie.naturalHeight);
         const imageWidth = selfie.naturalWidth * ratio, imageHeight = selfie.naturalHeight * ratio;
         ctx.drawImage(selfie, x + (w - imageWidth) / 2, y + (h - imageHeight) / 2, imageWidth, imageHeight);
-      } else fallbackSelfie(ctx, x, y, w, h, accentColor(data.accent));
+      } else fallbackSelfie(ctx, x, y, w, h, accentColor(data.accent), data.accessory);
       ctx.restore();
       if (block.captionLines.length) {
         font(ctx, 22, 'italic');

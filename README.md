@@ -5,6 +5,8 @@ A playful, romantic website with interactive 3D penguins and cinematic video bac
 - Explore three places, share gentle conversations, and customize your penguin.
 - Read a personal letter, listen to music, and capture a penguin selfie.
 - Download or share a memory card with the moments and answers you choose.
+- Choose silk bows, rose blooms, tiny tiaras, pearls, ribbons, or heart clips.
+- A warm rose-and-blush palette with visibly moving background films.
 - Responsive layouts, keyboard controls, and reduced-motion support.
 
 ## Run locally
@@ -15,7 +17,7 @@ Install Node.js, then run from the repository root:
 node serve.cjs
 ```
 
-Open http://127.0.0.1:4173 in your browser. No package installation or build step is required.
+Open http://127.0.0.1:3000 in your browser. No package installation or build step is required.
 
 ## Host the website
 
