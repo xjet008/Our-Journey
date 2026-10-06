@@ -1,0 +1,35 @@
+<!doctype html><meta charset="utf-8"><title>Living world checks</title>
+<style>body{margin:0;background:#20353b;color:#f5eee1;font:14px Segoe UI}#result{white-space:pre-wrap;padding:20px}canvas{width:900px;height:550px;display:block}.grid{display:grid;grid-template-columns:1fr 1fr;gap:15px;padding:15px}.grid img{width:100%}h2{font:22px Georgia}</style>
+<pre id="result">Running distance, geometry, and scene checks…</pre><canvas></canvas><div class="grid"></div>
+<script type="module">
+import {JourneyWorld} from '/world.js';import * as THREE from '/assets/three.module.min.js';import {PartnerSpacing,distanceToGap} from '/proximity.js';
+const errors=new Set();let samples=0,penetrations=0,minGap=Infinity;const issues=[];
+const assert=(pass,message)=>{if(!pass)errors.add(message);};
+for(const d of [0,55,100])for(const kind of ['hug','kiss','hand']){const s=new PartnerSpacing(d);s.contact(kind,10);for(let t=10;t<=18;t+=.1){const r=s.sample(t);assert(s.selected===d,'Contact changed saved preference');assert(r.gap>=1.27&&r.gap<=2.45,'Contact out of bounds');}assert(Math.abs(s.sample(18).gap-distanceToGap(d))<.001,'Contact did not return to preference');s.contact(kind,20,{persistent:true});s.sample(100);assert(s.selected===d,'Persistent pose changed preference');s.release();assert(s.sample(101).gap===distanceToGap(d),'Pose release did not restore preference');}
+const w=new JourneyWorld(document.querySelector('canvas'));cancelAnimationFrame(w.frameId);w.quality.choose('low');w.setAccessory('pearls','#ee9eb5');const draw=w.renderer.render.bind(w.renderer);w.renderer.render=()=>{};
+function inspect(){
+ w.scene.updateMatrixWorld(true);const a=w.male.group.position,b=w.female.group.position;
+ const r=p=>Math.hypot(.575*Math.cos(p.group.rotation.y),.54*Math.sin(p.group.rotation.y));
+ minGap=Math.min(minGap,b.x-a.x-r(w.male)-r(w.female));assert(b.x-a.x>=r(w.male)+r(w.female)+.089,'Body clearance');
+ for(const p of [a,b])assert(Math.abs(p.x-w.anchor.x)<=1.241,'Outside safe floor');
+ for(const p of [w.male,w.female])p.wings.forEach((wing,i)=>assert(wing.position.distanceTo(new THREE.Vector3((i?1:-1)*.5,1.25,.035))<.001,'Detached shoulder'));
+ if(samples%8===0){
+  const solids=p=>[p.torso,p.belly,p.head.children[0]];const point=new THREE.Vector3();
+  for(const [own,other,label] of [[w.male,w.female,'male'],[w.female,w.male,'female']])for(const mesh of [...solids(own),...own.wings.map(g=>g.children[0])])for(const target of solids(other)){
+   const inverse=target.matrixWorld.clone().invert(),attr=mesh.geometry.attributes.position;
+   for(let i=0;i<attr.count;i+=2){point.fromBufferAttribute(attr,i).applyMatrix4(mesh.matrixWorld).applyMatrix4(inverse);if(point.lengthSq()<.95**2){penetrations++;if(issues.length<15)issues.push(`${w.reaction} ${label} ${own.wings.some(g=>g.children[0]===mesh)?'wing':'body'} into ${solids(other).indexOf(target)} at frame ${samples}`);break;}}
+  }
+ }samples++;
+}
+function step(n=100){for(let i=0;i<n;i++){w.frame((w.lastTime||performance.now())+1000/60);cancelAnimationFrame(w.frameId);inspect();}}
+const poses=['Standing together','Side hug','Funny pose','Heart pose','Penguin kiss','Looking at the stars'];
+for(const d of [0,55,100]){w.setScene('selfie');w.setDistance(d);w.anchor.copy(w.destination);w.male.group.position.copy(w.male.target);w.female.group.position.copy(w.female.target);step(60);for(const pose of poses){w.setPose(pose);step(170);assert(w.spacing.selected===d,'Pose lost distance');}w.setPose('Standing together');for(const x of [-10,-1,0,1,10]){w.walkTo(x);step(40);assert(w.spacing.selected===d,'Walking lost distance');}}
+for(const place of ['roses','grove','stars','viewpoint','entrance','roses','grove','stars']){w.setScene('journey');w.travelTo(place);w.anchor.copy(w.destination);step(90);assert(w.environments.cache.size<=3,'Scene cache unbounded');}
+for(const mood of ['happy','wave','flower','shy','curious','patient','surprised','hand','hug','kiss']){w.setDistance(100);w.react(mood);step(480);assert(w.spacing.selected===100,'Reaction changed preference');}
+for(const delta of [100,1000])for(const selected of [0,55,100])for(const gesture of ['hug','kiss','hand']){w.setScene('selfie');w.setPose('Standing together');w.setDistance(selected);w.settle();w.react(gesture);for(let i=0;i<80;i++){w.frame((w.lastTime||performance.now())+delta);cancelAnimationFrame(w.frameId);inspect();}assert(w.spacing.selected===selected,'Slow frame changed preference');}
+assert(!w.renderer.shadowMap.enabled,'Low quality shadows enabled');assert(w.renderer.getPixelRatio()<=1,'Low quality DPR too high');
+for(const id of ['flower','lantern','water','moon','bench']){w.interact(id);step(15);assert(w.environments.effects[id]!=null,`Missing ${id} interaction`);}
+w.setScene('selfie');w.anchor.copy(w.destination);w.setDistance(100);w.setPose('Standing together');step(100);
+for(const pose of poses){w.setPose(pose);step(170);w.renderer.render=draw;draw(w.scene,w.camera);const item=document.createElement('article');item.innerHTML=`<h2>${pose}</h2><img alt="${pose}" src="${w.capture()}">`;document.querySelector('.grid').append(item);w.renderer.render=()=>{};}
+document.querySelector('#result').textContent=JSON.stringify({passed:errors.size===0&&penetrations===0,samples,errors:[...errors],penetrations,issues,minGap,cache:w.environments.cache.size,drawCalls:w.renderer.info.render.calls,triangles:w.renderer.info.render.triangles},null,2);w.dispose();
+</script>

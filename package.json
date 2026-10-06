@@ -2,8 +2,11 @@
   "name": "our-little-journey",
   "private": true,
   "version": "1.0.0",
+  "type": "module",
   "scripts": {
     "dev": "node serve.cjs",
-    "start": "node serve.cjs"
+    "start": "node serve.cjs",
+    "test": "node --test tests/proximity.test.mjs",
+    "test:world": "node tests/serve-world-checks.cjs"
   }
 }
