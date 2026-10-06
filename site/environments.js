@@ -73,14 +73,14 @@ export class RomanticWorld {
       this.rail(g,3.78,-2.18,1.54,true);this.rail(g,3.78,2.18,1.54,true);
       spot('flower','Touch a flower','✿',[-2.1,.65,1.25]);spot('next','Walk to the bridge','→',[2.6,.5,.7]);
     }else if(name==='grove'){
-      this.box(g,'#344d50',[0,-.52,0],[10,.06,9]);this.planks(g,5.2,6.4);
+      this.ball(g,'#344d50',[0,-.52,0],[5,.03,4.5]);this.planks(g,5.2,6.4);
       // An open western landing lets the garden path enter between the rails.
       this.rail(g,2.5,-3,6);
       for(let i=0;i<6;i++)record.lanterns.push(this.lantern(g,2.45,-2.4+i*.85));
       for(const [x,z,h] of [[3.5,-3,2.6],[-3.6,-3.1,2.2]]){this.ball(g,'#65735a',[x,-.31,z],[1.25,.35,1.15]);this.tree(g,x,z,h);}
       spot('lantern','Light the lantern path','✧',[2.1,.6,.9]);spot('next','Follow the lights to the lake','→',[1.9,.5,-2.0]);
     }else if(name==='stars'){
-      const water=this.box(g,'#426568',[0,-.48,0],[15,.04,12]);water.userData.dynamic=true;water.material=this.mat('#426568',{roughness:.3,metalness:.18});record.water=water;
+      const water=this.ball(g,'#426568',[0,-.48,0],[7.5,.022,6]);water.userData.dynamic=true;water.material=this.mat('#426568',{roughness:.65,metalness:.05});record.water=water;
       this.planks(g,5.2,4.8);this.rail(g,-2.4,-2.2,4.4);this.rail(g,2.4,-2.2,4.4);
       const bank=new THREE.Group();bank.position.set(-4,-.025,0);g.add(bank);this.ground(bank,5.8,5.1,'#76654b');
       this.tree(g,-6.1,-2.2,2.3);

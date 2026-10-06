@@ -60,4 +60,4 @@ Restart clears environmental discoveries, camera gestures, reaction and walking 
 
 The audio bed continues between locations with gradual filter changes. Discovery chimes are short and limited; chords cannot stack. Sound fades down while the page is hidden. On leaving the page, audio and rendering resources are released.
 
-Validation: eight Node tests and 16,380 sampled animation frames passed, including no sampled body penetration or bench-seat intersection. Full mobile journey checked at 390×844, with narrow portrait and landscape layout checks. The browser's download-event automation did not expose a file path; the generated memory PNG was successfully decoded at 1500px width, and the download action showed its success state. Hardware Safari/iOS and Android GPU performance remain unverified.
+Validation: eight Node tests and 16,380 sampled animation frames passed, including no sampled body penetration or bench-seat intersection. Full mobile journey checked at 390×844, with narrow portrait and landscape layout checks. The generated and downloaded memory PNG was verified at 1500×4421 pixels. Hardware Safari/iOS and Android GPU performance remain unverified.
