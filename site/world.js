@@ -181,12 +181,15 @@ class Penguin {
     sphere(this.head, black, [-.032, -.06, .592], [.007, .005, .007], 10);
     sphere(this.head, black, [.032, -.06, .592], [.007, .005, .007], 10);
     this.feet = [];
+    this.legs = [];
     this.wings = [];
     for (const side of [-1, 1]) {
       const foot = sphere(this.body, orange, [side * .205, .065, .123], [.21, .072, .25], 24);
       foot.rotation.y = -side * .11;
       this.group.add(foot); // The planted feet do not inherit torso bob or roll.
       this.feet.push(foot);
+      const leg=mesh(new THREE.CylinderGeometry(.048,.06,1,10),orange,this.group);
+      this.legs.push(leg);
       const pivot = new THREE.Group();
       pivot.position.set(side * .50, 1.25, .035);
       const wing = createFlipper(this.dark,side);
@@ -407,6 +410,12 @@ class Penguin {
     for(const axis of ['x','y','z'])this.head.rotation[axis]=lerp(oldHead[axis],this.head.rotation[axis],1-Math.exp(-dt*5));
     this.body.rotation.z=lerp(oldLean,this.body.rotation.z,1-Math.exp(-dt*7));
     this.body.position.y=lerp(oldLift,this.body.position.y,1-Math.exp(-dt*9));
+    this.feet.forEach((foot,i)=>{
+      const hip=new THREE.Vector3((i?1:-1)*.205,.27,.03).applyEuler(this.body.rotation).add(this.body.position);
+      const ankle=foot.position.clone().add(new THREE.Vector3(0,.035,-.055)),limb=ankle.clone().sub(hip);
+      this.legs[i].position.copy(hip).addScaledVector(limb,.5);this.legs[i].scale.y=limb.length();
+      this.legs[i].quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),limb.normalize());
+    });
     this.eyes.forEach(eye => { eye.scale.y = active === 'sleep' || active === 'sleeping' ? .07 : active === 'kiss' ? lerp(blink,.24,contact.phase) : blink; });
   }
 }

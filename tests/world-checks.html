@@ -15,7 +15,7 @@ function inspect(){
  for(const p of [w.male,w.female])p.wings.forEach((wing,i)=>assert(wing.position.distanceTo(new THREE.Vector3((i?1:-1)*.5,1.25,.035))<.001,'Detached shoulder'));
  if(samples%8===0){
   const solids=p=>[p.torso,p.belly,p.head.children[0]];const point=new THREE.Vector3();
-  for(const [own,other,label] of [[w.male,w.female,'male'],[w.female,w.male,'female']])for(const mesh of [...solids(own),...own.wings.map(g=>g.children[0])])for(const target of solids(other)){
+  for(const [own,other,label] of [[w.male,w.female,'male'],[w.female,w.male,'female']])for(const mesh of [...solids(own),...own.legs,...own.wings.map(g=>g.children[0])])for(const target of solids(other)){
    const inverse=target.matrixWorld.clone().invert(),attr=mesh.geometry.attributes.position;
    for(let i=0;i<attr.count;i+=2){point.fromBufferAttribute(attr,i).applyMatrix4(mesh.matrixWorld).applyMatrix4(inverse);if(point.lengthSq()<.95**2){penetrations++;if(issues.length<15)issues.push(`${w.reaction} ${label} ${own.wings.some(g=>g.children[0]===mesh)?'wing':'body'} into ${solids(other).indexOf(target)} at frame ${samples}`);break;}}
   }
