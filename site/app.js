@@ -108,13 +108,13 @@ const tableLetter=new TableLetter({
   token.origin=letterOrigin();const dialog=$('#letterDialog'),paper=$('.reading-paper');
   $('#letterWords').textContent=state.letter;$('.letter-body').scrollTop=0;dialog.showModal();
   world?.setLetterReading(true);$('#film').pause();$('#filmNext').pause();document.body.dataset.letterPhase='opening';$('#returnLetter').disabled=true;
-  const rect=paper.getBoundingClientRect();token.animation=paper.animate([{opacity:.25,transform:letterTransform(token.origin,rect)},{opacity:1,transform:'translate(0,0) scale(1) rotate(0deg)'}],{duration:reduced?100:720,easing:'cubic-bezier(.18,.76,.2,1)',fill:'forwards'});
+  const rect=paper.getBoundingClientRect();const frames=reduced?[{opacity:0},{opacity:1}]:[{opacity:.25,transform:letterTransform(token.origin,rect)},{opacity:1,transform:'translate(0,0) scale(1) rotate(0deg)'}];token.animation=paper.animate(frames,{duration:reduced?100:720,easing:'cubic-bezier(.18,.76,.2,1)',fill:'forwards'});
   return token.animation.finished;
  },
  read:token=>{token.animation?.cancel();document.body.dataset.letterPhase='reading';$('#returnLetter').disabled=false;$('.letter-body').focus({preventScroll:true});},
  fold:token=>{
   document.body.dataset.letterPhase='returning';$('#returnLetter').disabled=true;
-  const paper=$('.reading-paper'),rect=paper.getBoundingClientRect();token.animation=paper.animate([{opacity:1,transform:'translate(0,0) scale(1) rotate(0deg)'},{opacity:.1,transform:letterTransform(letterOrigin(),rect)}],{duration:reduced?100:650,easing:'cubic-bezier(.6,0,.8,.3)',fill:'forwards'});
+  const paper=$('.reading-paper'),rect=paper.getBoundingClientRect();const frames=reduced?[{opacity:1},{opacity:0}]:[{opacity:1,transform:'translate(0,0) scale(1) rotate(0deg)'},{opacity:.1,transform:letterTransform(letterOrigin(),rect)}];token.animation=paper.animate(frames,{duration:reduced?100:650,easing:'cubic-bezier(.6,0,.8,.3)',fill:'forwards'});
   return token.animation.finished;
  },
  restore:token=>{
