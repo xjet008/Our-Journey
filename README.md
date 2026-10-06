@@ -95,3 +95,11 @@ The bench marker sits at the visible end of the seat, and the ripple marker is r
 The flower action starts a gentle picking and offering pose. Choosing “I'll keep it” continues from the held flower: she reaches for it, receives it, and tucks the bloom by her head. The flower follows the actual flipper tips through the exchange and fades into her flower accessory. Both penguins then relax and return to the chosen distance. Declining clears the offer; navigating away cancels the exchange. Gentler motion skips the dipping pose.
 
 Validation: all 20 Node tests pass, including phase continuity, acceptance timing, and restoring the latest distance. Browser checks passed over 38,009 sampled frames, including offering, receiving, declining, interruption, gentler motion, and body/wing clearance at three distances. The flower offer and acceptance were also checked through the actual desktop controls.
+
+## Tiled platforms and the table letter
+
+The invitation platform, world landings and connecting paths share a warm limestone tile finish with fine grout and subtle stone variation. The bases use a coordinated taupe trim. Railings now have slim dark green posts, crossed metalwork and brass caps; the open approach to the lake bench remains clear.
+
+The envelope waits on the table until clicked. It lifts into a large, scrollable reading dialog while the world and background films pause. Closing it (or pressing Escape) folds it back to the table; only after the return finishes does the distance chapter begin. Repeated clicks share the same transition, and reset or page exit cancels pending continuation. Reloading returns to the closed envelope. Personalized letters remain editable in settings; gentler motion uses brief fades.
+
+Validation: all 23 Node tests pass, including closing during opening, repeated close events, and cancellation at every return stage. Desktop browser interaction verified clicking the envelope, reading, closing, Escape and continuing. Browser geometry checks also verify that the world pauses while reading, the envelope returns, and its click target fits five camera sizes, alongside existing walking, pose and bench clearance checks. Physical phone interaction remains unverified.

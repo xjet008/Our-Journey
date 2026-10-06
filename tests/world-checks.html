@@ -3,7 +3,7 @@
 <pre id="result">Running distance, geometry, and scene checks…</pre><canvas></canvas><div class="grid"></div>
 <script type="module">
 import {JourneyWorld} from '/world.js';import * as THREE from '/assets/three.module.min.js';import {PartnerSpacing,distanceToGap} from '/proximity.js';import {bench,decks,connectors} from '/world-layout.js';import {places} from '/environments.js';
-const errors=new Set();let samples=0,penetrations=0,minGap=Infinity;const issues=[];
+const errors=new Set();let samples=0,penetrations=0,minGap=Infinity;const issues=[],letterCameraChecks=[];
 const assert=(pass,message)=>{if(!pass)errors.add(message);};
 for(const d of [0,55,100])for(const kind of ['hug','kiss','hand']){const s=new PartnerSpacing(d);s.contact(kind,10);for(let t=10;t<=18;t+=.1){const r=s.sample(t);assert(s.selected===d,'Contact changed saved preference');assert(r.gap>=1.27&&r.gap<=2.45,'Contact out of bounds');}assert(Math.abs(s.sample(18).gap-distanceToGap(d))<.001,'Contact did not return to preference');s.contact(kind,20,{persistent:true});s.sample(100);assert(s.selected===d,'Persistent pose changed preference');s.release();assert(s.sample(101).gap===distanceToGap(d),'Pose release did not restore preference');}
 const w=new JourneyWorld(document.querySelector('canvas'));cancelAnimationFrame(w.frameId);w.quality.choose('low');w.setAccessory('pearls','#ee9eb5');const draw=w.renderer.render.bind(w.renderer);w.renderer.render=()=>{};
@@ -27,6 +27,13 @@ function inspect(){
  }samples++;
 }
 function step(n=100){for(let i=0;i<n;i++){w.frame((w.lastTime||performance.now())+1000/60);cancelAnimationFrame(w.frameId);inspect();}}
+w.setScene('letter');w.settle({forward:true,snapCamera:true});step(60);
+const beforeReading={time:w.elapsed,male:w.male.group.position.clone(),female:w.female.group.position.clone(),camera:w.camera.position.clone()};
+w.setLetterReading(true);step(90);
+assert(w.elapsed===beforeReading.time&&w.male.group.position.equals(beforeReading.male)&&w.female.group.position.equals(beforeReading.female)&&w.camera.position.equals(beforeReading.camera),'Reading did not pause the world');
+assert(!w.tableLetter.visible&&w.table.visible,'Reading did not lift only the envelope');
+w.setLetterReading(false);step(20);assert(w.tableLetter.visible&&w.elapsed>beforeReading.time,'Returning the envelope did not resume the world');
+w.reset();
 const poses=['Standing together','Side hug','Funny pose','Heart pose','Penguin kiss','Looking at the stars'];
 function snapshot(title){w.renderer.render=draw;draw(w.scene,w.camera);const item=document.createElement('article');item.innerHTML=`<h2>${title}</h2><img alt="${title}" src="${w.capture()}">`;document.querySelector('.grid').append(item);w.renderer.render=()=>{};}
 for(const selected of [0,55,100]){
@@ -55,6 +62,9 @@ w.setScene('journey');w.travelTo('grove');w.interact('lantern');step(900);assert
 w.react('hug');step(160);w.walkTo(1);step(100);assert(w.spacing.override===null,'Interrupted hug did not finish separating');
 for(const [width,height] of [[390,844],[320,568],[844,390],[568,320],[1440,900]]){
  w.canvas.style.width=width+'px';w.canvas.style.height=height+'px';w.resize();w.setDistance(0);
+ w.setScene('letter');w.settle({forward:true,snapCamera:true});step(45);
+ const envelope=w.letterScreenPosition();letterCameraChecks.push({width,height,...envelope});assert(envelope.x>.04&&envelope.x<.96&&envelope.y>.1&&envelope.y<.84,`Table letter outside viewport at ${width}x${height}`);
+ if(width<height)assert(envelope.y<.57,`Table letter behind portrait reading area at ${width}x${height}`);
  for(const place of ['entrance','roses','grove','stars','viewpoint']){w.setScene('journey');w.travelTo(place);w.settle();step(45);
   for(const penguin of [w.male,w.female])for(const y of [0,2.24]){const p=penguin.group.position.clone().add(new THREE.Vector3(0,y,0)).project(w.camera);assert(Math.abs(p.x)<.93&&p.y<.85&&p.y>-.72,`Camera crops penguin at ${width}x${height} ${place}`);if(width<height)assert((1-p.y)/2<.64,'Portrait character enters reading area');}
  }
@@ -105,5 +115,5 @@ w.setScene('journey');w.travelTo('stars');w.react('hug');step(1400);
 assert(w.anchor.z===-21&&w.hasArrived(),'Contact request blocked world arrival');
 w.setScene('selfie');w.settle();w.setDistance(100);w.setPose('Standing together');step(100);
 for(const pose of poses){w.setPose(pose);step(170);w.renderer.render=draw;draw(w.scene,w.camera);const item=document.createElement('article');item.innerHTML=`<h2>${pose}</h2><img alt="${pose}" src="${w.capture()}">`;document.querySelector('.grid').append(item);w.renderer.render=()=>{};}
-document.querySelector('#result').textContent=JSON.stringify({passed:errors.size===0&&penetrations===0,samples,walkingSamples,arrivals,gatewayFrames,errors:[...errors],penetrations,issues,minGap,cache:w.environments.cache.size,drawCalls:w.renderer.info.render.calls,triangles:w.renderer.info.render.triangles},null,2);w.dispose();
+document.querySelector('#result').textContent=JSON.stringify({passed:errors.size===0&&penetrations===0,samples,walkingSamples,arrivals,gatewayFrames,letterCameraChecks,errors:[...errors],penetrations,issues,minGap,cache:w.environments.cache.size,drawCalls:w.renderer.info.render.calls,triangles:w.renderer.info.render.triangles},null,2);w.dispose();
 </script>

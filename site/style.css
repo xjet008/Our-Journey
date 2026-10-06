@@ -119,3 +119,23 @@ body[data-walking="true"] #walkHint{opacity:.35;pointer-events:none}
 .gateway-handoff{position:fixed;inset:0;z-index:90;display:grid;place-items:center;opacity:0;pointer-events:auto;background:radial-gradient(ellipse at 62% 44%,#35504d,#1c3439 65%);color:#eac3a5}
 .gateway-handoff span{font:28px Georgia;opacity:.7;text-shadow:0 0 24px #eac3a577}
 body[data-gateway-transition] #worldHotspots{visibility:hidden}
+/* The paper lifts from the table, with enough room to read at every size. */
+#letterDialog{background:transparent;border:0;border-radius:0;padding:0;width:min(660px,calc(100% - 32px));max-width:660px;max-height:none;overflow:visible;box-shadow:none;color:#394541}
+#letterDialog::backdrop{background:#102b33bf;backdrop-filter:blur(8px)}
+.reading-paper{padding:32px 40px 23px;max-height:88svh;display:flex;flex-direction:column;background:linear-gradient(135deg,#fff8eb,#eee4ce);border:1px solid #d8c6a8;box-shadow:0 24px 100px #071a2470,5px 5px 0 #e1d3b8;border-radius:3px;transform-origin:center}
+.reading-paper .eyebrow{color:#8b7660;font-size:9px;margin:0 0 10px}
+.reading-paper h2{font:italic 36px Georgia,serif;margin:0 0 6px;color:#3d504c;letter-spacing:-.6px}
+.letter-hint{font-size:11px;color:#887861;margin:0 0 20px}
+.letter-body{min-height:0;overflow:auto;overscroll-behavior:contain;padding:4px 10px 4px 0;scrollbar-color:#b9a78a transparent;scrollbar-width:thin}
+.letter-body p{white-space:pre-line;font:16px/1.9 'Segoe Print',Georgia,serif;margin:0 0 20px}
+.letter-body .signature{font:italic 22px/1.5 Georgia,serif;color:#937563;margin:8px 0 20px}
+.letter-body:focus-visible{outline:1px solid #af9977;outline-offset:4px}
+.letter-return{display:flex;align-items:center;justify-content:space-between;gap:25px;min-height:48px;width:100%;padding:14px 0 5px;border-top:1px solid #baa98e6b;color:#456258;font-size:11px;letter-spacing:1px;text-transform:uppercase;flex-shrink:0}
+.letter-return span{font-size:21px}.letter-return:hover{color:#293f37}.letter-return:disabled{opacity:.5;cursor:wait}
+.letter-footnote{font:italic 12px Georgia,serif;margin:10px 0 0;color:#968268;flex-shrink:0}
+.letter-table-note{position:static;margin-top:35px;font-size:20px}
+.world-hotspot[data-world="letter"] small{display:block;opacity:1;transform:none;white-space:nowrap}
+.world-hotspot[data-world="letter"]>span{border-radius:7px;width:60px;height:44px;background:#eee1c9;color:#8d685d;font-size:30px;border:1px solid #fff6e0;box-shadow:0 0 0 7px #f2e1ba16,0 0 28px #e6cca977}
+body[data-letter-phase] .world-hotspot[data-world="letter"]{visibility:hidden}
+@media(max-width:700px){.reading-paper{padding:25px 23px 20px;max-height:88svh}.reading-paper h2{font-size:31px}.letter-body p{font-size:14px;line-height:1.8}.letter-body .signature{font-size:20px}.letter-table-note{font-size:16px;margin-top:24px}.immersed .world-hotspot[data-world="letter"] small{display:block;font-size:10px}}
+@media(max-height:480px){.reading-paper{padding:16px 24px;max-height:91svh}.reading-paper h2{font-size:26px}.letter-hint{margin-bottom:8px}.letter-body p{font-size:13px;line-height:1.7}.letter-footnote{display:none}}

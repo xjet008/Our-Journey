@@ -1,5 +1,6 @@
 import * as THREE from './assets/three.module.min.js';
 import {decks,connectors,bench} from './world-layout.js';
+import {tileUV,tileRectangle} from './tiled-floor.js';
 
 export const places={
   entrance:{anchor:[0,0,-6],next:'roses',name:'The forest entrance'},
@@ -11,7 +12,8 @@ export const places={
 
 /** Small, connected places. Build the current and nearby place, retain at most three. */
 export class RomanticWorld {
-  constructor(scene){
+  constructor(scene,tileFinish){
+    this.tileFinish=tileFinish;
     this.scene=scene;this.cache=new Map();this.materials=new Map();this.active='entrance';this.effects={};this.visible=false;
     this.unitBox=new THREE.BoxGeometry(1,1,1);this.unitSphere=new THREE.SphereGeometry(1,16,12);
     this.unitCone=new THREE.ConeGeometry(1,1,14);this.unitCylinder=new THREE.CylinderGeometry(1,1,1,14);
@@ -46,13 +48,30 @@ export class RomanticWorld {
     const r=Math.min(.95,w/4,d/4),x=w/2,z=d/2,s=new THREE.Shape();
     s.moveTo(-x+r,-z);s.lineTo(x-r,-z);s.quadraticCurveTo(x,-z,x,-z+r);s.lineTo(x,z-r);s.quadraticCurveTo(x,z,x-r,z);s.lineTo(-x+r,z);s.quadraticCurveTo(-x,z,-x,z-r);s.lineTo(-x,-z+r);s.quadraticCurveTo(-x,-z,-x+r,-z);
     const geo=new THREE.ExtrudeGeometry(s,{depth:.18,bevelEnabled:true,bevelSegments:3,steps:1,bevelSize:.055,bevelThickness:.07,curveSegments:5});geo.rotateX(-Math.PI/2);
-    this.add(geo,this.mat(color),g,[0,-.25,0],[1,1,1]);
-    for(let i=0;i<18;i++){const a=i/18*Math.PI*2;const px=Math.cos(a)*w*.46,pz=Math.sin(a)*d*.46;if(Math.abs(px)<2&&Math.abs(pz)>d*.35||px>w*.4&&Math.abs(pz)<2.2)continue;this.ball(g,i%3?'#687b59':'#8a9270',[px,-.035,pz],[.32+i%3*.07,.08,.26]);}
+    // Leave the beveled foundation below the tile face, avoiding coplanar flicker.
+    this.add(geo,this.mat('#85735d'),g,[0,-.262,0],[1,1,1]);
+    const surface=new THREE.ShapeGeometry(s,16);surface.rotateX(-Math.PI/2);tileUV(surface);
+    this.add(surface,this.tileFinish,g,[0,0,0],[1,1,1]);
   }
-  planks(g,w,d,cx=0,cz=0,alongX=false){const n=Math.ceil(d/.24),step=d/n;for(let i=0;i<n;i++)this.box(g,i%3?'#947556':'#a0825f',[cx+(alongX?-d/2+(i+.5)*step:0),-.065,cz+(alongX?0:-d/2+(i+.5)*step)],[alongX?step-.012:w,.13,alongX?w:step-.012]);}
+  planks(g,w,d,cx=0,cz=0,alongX=false){
+    const width=alongX?d:w,depth=alongX?w:d;
+    this.box(g,'#7e705b',[cx,-.065,cz],[width,.13,depth]);
+    tileRectangle(g,this.tileFinish,width,depth,cx,cz,.002);
+  }
   rail(g,x,z,length,alongX=false){
-    for(let i=0;i<5;i++)this.box(g,'#87684d',[x+(alongX?i*length/4:0),.34,z+(alongX?0:i*length/4)],[.07,.75,.07]);
-    this.box(g,'#b59874',[x+(alongX?length/2:0),.64,z+(alongX?0:length/2)],[alongX?length+.1:.08,.08,alongX?.08:length+.1]);
+    const panels=Math.max(2,Math.ceil(length/1.15)),step=length/panels;
+    for(let i=0;i<=panels;i++){
+      const px=x+(alongX?i*step:0),pz=z+(alongX?0:i*step);
+      this.add(this.unitCylinder,this.mat('#35504d'),g,[px,.34,pz],[.027,.72,.027]);
+      this.ball(g,'#bea783',[px,.72,pz],[.044,.036,.044],{metalness:.35});
+      this.box(g,'#958166',[px,.025,pz],[.12,.05,.12]);
+    }
+    this.box(g,'#bca581',[x+(alongX?length/2:0),.69,z+(alongX?0:length/2)],[alongX?length+.09:.055,.045,alongX?.055:length+.09]);
+    this.box(g,'#35504d',[x+(alongX?length/2:0),.14,z+(alongX?0:length/2)],[alongX?length:.025,.025,alongX?.025:length]);
+    for(let i=0;i<panels;i++)for(const sign of [-1,1]){
+      const rod=this.box(g,'#48635c',[x+(alongX?(i+.5)*step:0),.405,z+(alongX?0:(i+.5)*step)],[.022,Math.hypot(step*.82,.43),.022]);
+      if(alongX)rod.rotation.z=sign*Math.atan2(step*.82,.43);else rod.rotation.x=sign*Math.atan2(step*.82,.43);
+    }
   }
   build(name){
     if(this.cache.has(name))return this.cache.get(name);
@@ -64,10 +83,10 @@ export class RomanticWorld {
       for(const [x,z,h] of [[-3,-1.8,2.8],[3,-2,3.1],[-2.8,2.1,1.4],[2.9,1.9,1.8]])this.tree(g,x,z,h);
       for(let i=0;i<8;i++)this.ball(g,'#b7a185',[(i%2?.37:-.37),.015,1.7-i*.55],[.23,.03,.16]);
       this.box(g,'#9c8160',[-2.15,.65,-1],[1.0,.38,.06]);
-      spot('letter','Open the little letter','✉',[-1.95,1.05,1.5]);
+      spot('letter','Open the letter','✉',[-1.985,.785,1.52]);
       spot('note','A note among the leaves','✧',[2.4,.60,1.6]);
     }else if(name==='roses'){
-      this.ground(g,7.4,6.8,'#776245');this.box(g,'#ab906a',[0,-.005,0],[3.2,.03,6.7]);
+      this.ground(g,7.4,6.8,'#776245');
       for(let side of [-1,1])for(let i=0;i<8;i++){const x=side*(2.1+(i%3)*.23),z=-2.2+i*.6;record.flowers.push(this.flower(g,x,z,i%2?'#dba7a1':'#efe2ca'));}
       this.tree(g,-3,-2.4,2.1);this.tree(g,3,-2.3,2.8);
       this.rail(g,3.78,-2.18,1.54,true);this.rail(g,3.78,2.18,1.54,true);

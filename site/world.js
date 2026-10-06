@@ -6,6 +6,7 @@ import {GuidedCamera, AdaptiveQuality} from './cinematic-camera.js';
 import {bench} from './world-layout.js';
 import {WalkingLeg, PenguinStride} from './walking.js';
 import {flowerGiftPose,FLOWER_GIFT_DURATION} from './flower-gift.js';
+import {createTileFinish,tileUV,tileRectangle} from './tiled-floor.js';
 
 const TAU = Math.PI * 2;
 const FLOOR_LIMIT = 1.24;
@@ -490,7 +491,7 @@ export class JourneyWorld {
     this.scene.add(rim);this.rimLight=rim;
     this.world = new THREE.Group();
     this.scene.add(this.world);
-    this.buildIsland();
+    this.tileFinish=createTileFinish();this.buildIsland();
     this.male = new Penguin(false);
     this.female = new Penguin(true);
     this.world.add(this.male.group, this.female.group);
@@ -498,13 +499,14 @@ export class JourneyWorld {
     this.buildDoor();
     this.buildTable();
     this.buildParticles();
-    this.environments=new RomanticWorld(this.world);
+    this.environments=new RomanticWorld(this.world,this.tileFinish);
     const shadowGeometry=new THREE.CircleGeometry(1,24);
     this.contactShadows=[this.male,this.female].map(()=>{const s=new THREE.Mesh(shadowGeometry,new THREE.MeshBasicMaterial({color:'#27332d',transparent:true,opacity:.20,depthWrite:false}));s.rotation.x=-Math.PI/2;s.scale.set(.48,.32,1);this.world.add(s);return s;});
     this.particlesAnchor=new THREE.Group();this.world.add(this.particlesAnchor);
     this.particlesAnchor.add(this.snow,...this.hearts.map(h=>h.mesh),...this.stars);
     const path=mesh(new THREE.BoxGeometry(4.7,.12,2.5),material('#90745a'),this.world,[0,-.10,-2.7]);
     this.gatewayPath=path;
+    tileRectangle(path,this.tileFinish,4.7,2.5,0,0,.062);
     this.resize = this.resize.bind(this);
     this.frame = this.frame.bind(this);
     this.observer = new ResizeObserver(this.resize);
@@ -518,18 +520,14 @@ export class JourneyWorld {
   buildIsland() {
     this.island = new THREE.Group();
     this.world.add(this.island);
-    const soil = material('#51392b', .98);
-    const earth = material('#73503b', 1);
+    const soil = material('#81705a', .9);
     mesh(new THREE.CylinderGeometry(2.9, 2.53, .28, 64), soil, this.island, [0, -.18, 0], [1, 1, .72]);
-    const top = sphere(this.island, earth, [0, -.055, 0], [2.96, .11, 2.12], 64);
+    const surface=new THREE.CircleGeometry(2.9,64);surface.rotateX(-Math.PI/2);surface.scale(1,1,.72);tileUV(surface);
+    const top = mesh(surface,this.tileFinish,this.island,[0,.005,0]);
     top.receiveShadow = true;
     top.castShadow = false;
-    const rim = mesh(new THREE.TorusGeometry(2.81, .085, 12, 96), earth, this.island, [0, -.062, 0], [1, .735, .7]);
+    const rim = mesh(new THREE.TorusGeometry(2.87, .035, 12, 96), material('#a59379'), this.island, [0, -.004, 0], [1, .72, 1]);
     rim.rotation.x = Math.PI / 2;
-    for (let i = 0; i < 12; i++) {
-      const angle = i * TAU / 12;
-      sphere(this.island, earth, [Math.cos(angle) * 2.73, -.064, Math.sin(angle) * 1.93], [.18 + (i % 3) * .04, .075, .17], 18);
-    }
     this.lanterns = [];
     this.glowMap = glowTexture();
     this.addLantern(-2.04, .93, 1);
@@ -611,9 +609,10 @@ export class JourneyWorld {
       leg.rotation.z = -Math.cos(angle) * .09;
       leg.rotation.x = Math.sin(angle) * .09;
     }
-    const letter = mesh(new THREE.BoxGeometry(.44, .008, .31), material('#fff2d5', .98), this.table, [-.035, .769, .02]);
+    this.tableLetter=new THREE.Group();this.table.add(this.tableLetter);
+    const letter = mesh(new THREE.BoxGeometry(.44, .008, .31), material('#fff2d5', .98), this.tableLetter, [-.035, .769, .02]);
     letter.rotation.y = -.22;
-    const seal = mesh(heartGeometry(), material('#bb7587', .8), this.table, [.06, .788, .015], [.043, .043, .03]);
+    const seal = mesh(heartGeometry(), material('#bb7587', .8), this.tableLetter, [.06, .788, .015], [.043, .043, .03]);
     seal.rotation.x = -Math.PI / 2;
     this.table.visible = false;
     this.world.add(this.table);
@@ -660,6 +659,7 @@ export class JourneyWorld {
     this.camera.updateProjectionMatrix();
     this.wide = this.immersed ? width >= 700 || width>height&&height<=550 : width / height > 1.55;
     this.mobile = width < 620;
+    if(this.table)this.table.position.x=this.camera.aspect<.8?-1.45:-1.95;
     this.updateCamera();
   }
 
@@ -847,7 +847,15 @@ export class JourneyWorld {
     if(!this.immersed||this.sceneName==='portal'||!this.hasArrived())return [];
     const spots=this.environments.hotspots().filter(s=>s.id!=='letter'||this.sceneName==='letter');
     spots.push({id:'penguin',label:'Say hello to him',icon:'♡',position:this.male.group.position.clone().add(new THREE.Vector3(0,2.5,0))});
-    return spots.map(s=>{const p=s.position.clone().project(this.camera);return {...s,x:(p.x+1)*50,y:(1-p.y)*50,visible:p.z<1&&Math.abs(p.x)<.94&&Math.abs(p.y)<.9};});
+    return spots.map(s=>{const position=s.id==='letter'?this.table.localToWorld(new THREE.Vector3(-.035,.78,.02)):s.position.clone();const p=position.project(this.camera);return {...s,x:(p.x+1)*50,y:(1-p.y)*50,visible:p.z<1&&Math.abs(p.x)<.94&&Math.abs(p.y)<.9};});
+  }
+
+  setLetterReading(value){this.letterReading=!!value;if(this.tableLetter)this.tableLetter.visible=!value;}
+  letterScreenPosition(){
+    if(!this.table||!this.camera)return {x:.65,y:.45};
+    this.camera.updateMatrixWorld(true);
+    const p=this.table.localToWorld(new THREE.Vector3(-.035,.78,.02)).project(this.camera);
+    return {x:(p.x+1)/2,y:(1-p.y)/2};
   }
 
   keepBodiesApart(){
@@ -869,6 +877,7 @@ export class JourneyWorld {
   setReducedMotion(value) { this.reducedMotion = !!value;if(this.reducedMotion)this.settle(); }
 
   reset(){
+    this.setLetterReading(false);
     if(this.failed)return;clearTimeout(this.lookTimer);this.guidedCamera.look=0;this.guidedCamera.drag=0;this.guidedCamera.gatewayStart=null;
     this.environments.reset();this.pendingInteractions?.clear();this.spacing.release();this.walkCenter=0;this.travelSpeed=0;this.nextIdle=this.elapsed+12;this.lastHotspot=0;this.pose='idle';this.reaction='idle';this.requestedPlace=null;this.travelQueue=[];this.travelLeg=null;this.pendingPose=null;this.pendingReaction=null;this.arrivalNotified=true;
     this.benchBlend=0;this.anchor.set(0,0,0);this.destination.copy(this.anchor);this.sceneName='reset';this.setDistance(55);this.setScene('welcome');this.settle();
@@ -882,6 +891,7 @@ export class JourneyWorld {
     const rawDt=this.lastTime?(now-this.lastTime)/1000:.016;
     const dt=Math.min(rawDt,document.hidden?1:.1);this.quality.sample(rawDt);
     this.lastTime = now;
+    if(this.letterReading){this.renderer.render(this.scene,this.camera);this.frameId=requestAnimationFrame(this.frame);return;}
     this.elapsed += Math.min(rawDt,1);
     const t = this.elapsed;
     if(!this.travelLeg&&this.travelQueue?.length&&t>=(this.legReadyAt||0))this.startTravelLeg(this.travelQueue.shift());
