@@ -189,6 +189,7 @@ class Penguin {
       this.group.add(foot); // The planted feet do not inherit torso bob or roll.
       this.feet.push(foot);
       const leg=mesh(new THREE.CylinderGeometry(.048,.06,1,10),orange,this.group);
+      leg.visible=false;
       this.legs.push(leg);
       const pivot = new THREE.Group();
       pivot.position.set(side * .50, 1.25, .035);

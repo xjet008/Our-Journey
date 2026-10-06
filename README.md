@@ -80,4 +80,6 @@ Validation: all 16 Node tests pass, including cover-before-swap ordering, repeat
 
 Walking uses shorter alternating strides with a bounded ankle reach during turns and personal-space changes, keeping the little feet beneath the body. Leg attachments sit lower inside the torso, and seated feet tuck closer in.
 
+Both penguins' leg meshes are hidden in every scene and pose, including walking and selfie captures. Only the body and little feet are visible.
+
 Validation: all 17 Node tests pass, including bounded foot reach at four frame rates with turns and distance changes. Browser geometry checks pass for 32,996 sampled frames, checking foot reach and leg length in addition to walking surfaces, arrival, poses, body clearance, bench clearance and camera framing. The doorway walk was also inspected in the actual desktop interface.
