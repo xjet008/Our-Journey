@@ -748,7 +748,7 @@ export class JourneyWorld {
   hotspots(){
     if(!this.immersed||this.sceneName==='portal')return [];
     const spots=this.environments.hotspots().filter(s=>s.id!=='letter'||this.sceneName==='letter');
-    spots.push({id:'penguin',label:'Say hello to him',icon:'♡',position:this.male.group.position.clone().add(new THREE.Vector3(0,1.9,0))});
+    spots.push({id:'penguin',label:'Say hello to him',icon:'♡',position:this.male.group.position.clone().add(new THREE.Vector3(0,2.5,0))});
     return spots.map(s=>{const p=s.position.clone().project(this.camera);return {...s,x:(p.x+1)*50,y:(1-p.y)*50,visible:p.z<1&&Math.abs(p.x)<.94&&Math.abs(p.y)<.9};});
   }
 
