@@ -7,6 +7,9 @@ A playful, romantic website with interactive 3D penguins and cinematic video bac
 - Download or share a memory card with the moments and answers you choose.
 - Choose silk bows, rose blooms, tiny tiaras, pearls, ribbons, or heart clips.
 - A cool teal-and-cream palette, earthy floating ground, and a pink female penguin.
+- Clear pearl jewelry, bounded walking, and solid body/wing separation across selfie poses.
+- Smooth section entrances, background crossfades, and an animated portal passage.
+- Distinct rose garden, lantern grove, and constellation scenery.
 - Responsive layouts, keyboard controls, and reduced-motion support.
 
 ## Run locally

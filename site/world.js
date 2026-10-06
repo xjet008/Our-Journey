@@ -1,6 +1,8 @@
 import * as THREE from './assets/three.module.min.js';
 
 const TAU = Math.PI * 2;
+const FLOOR_LIMIT = 1.24;
+const POSE_SPACING = { idle:1.58, hug:1.46, kiss:1.28, funny:1.98, heart:1.68, lookstars:1.66, sitting:1.60 };
 const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 const lerp = THREE.MathUtils.lerp;
 const poseName = name => {
@@ -214,6 +216,7 @@ class Penguin {
   }
 
   setAccessory(name = 'bow', color = '#ee9eb5') {
+    if(this.accessoryName===name && this.accent===color && this.accessory.children.length) return;
     this.accessoryName = name;
     this.accent = color;
     const geometries = new Set(), materials = new Set();
@@ -243,11 +246,20 @@ class Penguin {
       }
       for (let i = 0; i < 9; i++) sphere(this.accessory, pearl, [-.28 + i * .07, 2.07 - Math.abs(i - 4) * .005, .326 - Math.abs(i - 4) * .014], [.016, .016, .016], 14);
     } else if (type === 'pearls') {
-      for (let i = 0; i < 17; i++) {
-        const angle = -.5 * Math.PI + i / 16 * Math.PI;
-        sphere(this.accessory, pearl, [Math.sin(angle) * .354, 1.442 - Math.cos(angle) * .08, .097 + Math.cos(angle) * .316], [.027, .027, .027], 16);
+      // Follow the outside of the chest instead of embedding beads in it.
+      const chain = material('#c5a46b', .38, {metalness:.5});
+      const points = [];
+      for (let i = 0; i < 15; i++) {
+        const u = -1 + i / 7;
+        const x = u * .36;
+        const y = 1.40 - (1-u*u) * .16;
+        const z = .30 + Math.sqrt(1-u*u) * .25;
+        points.push([x,y,z]);
+        sphere(this.accessory, pearl, [x,y,z], [.043,.043,.043], 20);
       }
-      const pendant = mesh(heartGeometry(), accent, this.accessory, [0, 1.302, .442], [.048, .048, .04]);
+      tube(this.accessory, points, .009, chain, 32);
+      const pendant = mesh(heartGeometry(), accent, this.accessory, [0, 1.15, .576], [.092,.092,.045]);
+      sphere(this.accessory, pearl, [-.026,1.183,.598], [.012,.012,.007], 12);
       pendant.rotation.z = -.06;
     } else if (type === 'ribbon') {
       hairBow(this.accessory, accent, pearl, [-.35, 2.04, .194]);
@@ -299,7 +311,7 @@ class Penguin {
       if (!reduced && !sitting) this.body.position.y += Math.max(0, Math.sin(t * 5.5 + this.phase)) * .095;
       this.head.rotation.z = Math.sin(t * 1.6 + this.phase) * .055;
     } else if (active === 'heart') {
-      left = 1.12; right = -1.12;
+      left = 1.08; right = -1.08;
       this.head.rotation.z = this.female ? .075 : -.075;
     } else if (active === 'lookstars') {
       this.head.rotation.x = -.32;
@@ -314,15 +326,15 @@ class Penguin {
       this.head.rotation.z = this.female ? .06 : -.065;
       this.head.rotation.x = .06;
     } else if (active === 'hug' || active === 'kiss') {
-      left = -1.24; right = 1.24;
-      face = (this.female ? -1 : 1) * (active === 'kiss' ? .7 : .36);
-      this.head.rotation.y = active === 'kiss' ? (this.female ? -.12 : .12) : 0;
+      left = active==='kiss' ? -.23 : this.female ? -1.06 : -.30; right = active==='kiss' ? .23 : this.female ? .30 : 1.06;
+      face = (this.female ? -1 : 1) * (active === 'kiss' ? 1.15 : .14);
+      this.head.rotation.y = active === 'kiss' ? (this.female ? -.20 : .20) : 0;
       this.head.rotation.z = this.female ? .12 : -.12;
-      this.body.rotation.z = this.female ? .055 : -.055;
+      this.body.rotation.z = this.female ? -.018 : .018;
     } else if (active === 'funny' || active === 'dance') {
       left = -.91; right = .91;
       if (!reduced) {
-        this.body.rotation.z = Math.sin(t * 6 + this.phase) * .17;
+        this.body.rotation.z = Math.sin(t * 6 + this.phase) * .10;
         this.body.position.y += Math.abs(Math.sin(t * 5 + this.phase)) * .12;
       }
     } else if (active === 'flower') {
@@ -336,7 +348,14 @@ class Penguin {
     this.group.rotation.y = lerp(this.group.rotation.y, face, 1 - Math.exp(-dt * 5));
     this.wings[0].rotation.z = lerp(this.wings[0].rotation.z, left, 1 - Math.exp(-dt * 9));
     this.wings[1].rotation.z = lerp(this.wings[1].rotation.z, right, 1 - Math.exp(-dt * 9));
-    this.wings.forEach(wing => { wing.position.z = lerp(wing.position.z, active === 'heart' ? .39 : .005, 1 - Math.exp(-dt * 9)); });
+    this.wings.forEach((wing,i) => {
+      const embracing = active === 'hug';
+      const inner = this.female ? i===0 : i===1;
+      const front = active === 'heart' ? .60 : embracing && inner ? (this.female ? 1.15 : .85) : .10;
+      wing.position.y = lerp(wing.position.y, embracing && inner ? (this.female ? 1.10 : 1.43) : 1.25, 1-Math.exp(-dt*9));
+      wing.position.z = lerp(wing.position.z, front, 1 - Math.exp(-dt * 9));
+      wing.position.x = lerp(wing.position.x, (i===0?-1:1)*.53, 1-Math.exp(-dt*9));
+    });
     this.feet.forEach((foot, i) => {
       foot.position.y = .065 + (sitting ? .10 : 0) + (walking ? Math.max(0, Math.sin(tempo + i * Math.PI)) * .055 : 0);
       foot.position.z = lerp(foot.position.z, sitting ? .38 : .123, 1 - Math.exp(-dt * 6));
@@ -417,6 +436,7 @@ export class JourneyWorld {
     this.buildDoor();
     this.buildTable();
     this.buildParticles();
+    this.buildLocations();
     this.resize = this.resize.bind(this);
     this.frame = this.frame.bind(this);
     this.observer = new ResizeObserver(this.resize);
@@ -514,7 +534,7 @@ export class JourneyWorld {
 
   buildTable() {
     this.table = new THREE.Group();
-    this.table.position.set(-1.65, .005, .27);
+    this.table.position.set(-1.85, .005, -.80);
     const wood = material('#a28877', .81);
     mesh(new THREE.CylinderGeometry(.45, .45, .065, 40), wood, this.table, [0, .73, 0]);
     for (let i = 0; i < 3; i++) {
@@ -586,7 +606,7 @@ export class JourneyWorld {
   setScene(name = 'welcome') {
     if (this.failed || this.disposed) return;
     this.sceneName = name;
-    this.door.visible = name === 'customize' || name === 'journey';
+    this.door.visible = name === 'customize' || name === 'portal';
     this.table.visible = name === 'letter';
     this.door.scale.setScalar(name === 'journey' ? .82 : 1);
     this.keyLight.color.set(name === 'memory' || name === 'final' ? '#ffd7ad' : name === 'distance' ? '#e1e6f6' : '#ffdfc1');
@@ -597,39 +617,48 @@ export class JourneyWorld {
       this.react('wave');
     } else {
       this.setCompanion(true);
-      this.male.target.set(-.61, 0, .13);
-      this.female.target.set(.69, 0, .04);
+      this.positionPair(1.58);
       if (name === 'distance') this.setDistance(this.distance);
       if (name === 'final' || name === 'selfie' || name === 'memory') this.react(name === 'final' ? 'heart' : 'happy');
       else { this.reaction = 'idle'; this.pose = 'idle'; }
     }
+    this.setLocation(this.location || 'roses');
     this.updateCamera();
   }
 
   setCompanion(visible = true) {
     if (this.failed || this.disposed) return;
+    const changed = this.companionVisible !== !!visible;
     this.companionVisible = !!visible;
     this.female.group.visible = !!visible;
-    this.male.target.x = visible ? -.61 : -.04;
-    if (visible) this.female.target.set(.69, 0, .04);
+    if(changed && visible) this.positionPair(1.58);
+    if(!visible) this.male.target.set(-.04,0,.23);
   }
 
-  setAccessory(name, color = '#d597ae') {
+  setAccessory(name, color = '#ee9eb5') {
     if (this.failed || this.disposed) return;
+    if(this.female.accessoryName===name && this.female.accent===color) return;
     this.female.setAccessory(name, color);
     this.react('happy');
+  }
+
+  positionPair(gap=1.58, center=0) {
+    gap=clamp(gap,1.28,FLOOR_LIMIT*2);
+    center=clamp(center,-FLOOR_LIMIT+gap/2,FLOOR_LIMIT-gap/2);
+    // The table occupies the left side of the letter scene.
+    if(this.sceneName==='letter') {gap=1.58;center=.38;}
+    this.male.target.set(center-gap/2,0,.24);
+    this.female.target.set(center+gap/2,0,.24);
   }
 
   setDistance(value) {
     if (this.failed || this.disposed) return;
     this.distance = clamp(Number(value) || 0, 0, 100);
     this.setCompanion(true);
-    const apart = 1 - this.distance / 100;
-    this.male.target.set(-.61 - apart * .39, 0, .13);
-    this.female.target.set(.69 + apart * 1.57, 0, -.03 - apart * .79);
-    if (this.distance > 94) { this.reaction = 'happy'; this.reactionUntil = this.elapsed + 1.8; }
-    else if (this.distance < 25) { this.reaction = 'wait'; this.reactionUntil = this.elapsed + 3600; }
-    else { this.reaction = 'idle'; }
+    this.positionPair(1.58+(1-this.distance/100)*.90);
+    this.pose='idle';
+    this.reaction = this.distance < 25 ? 'wait' : 'idle';
+    this.reactionUntil = Infinity;
   }
 
   react(name = 'happy') {
@@ -637,24 +666,16 @@ export class JourneyWorld {
     this.reaction = poseName(name);
     this.reactionStart = this.elapsed;
     this.reactionUntil = this.elapsed + (this.reaction === 'wait' || this.reaction === 'waiting' ? 12 : 4.5);
-    if (this.reaction === 'hug' || this.reaction === 'kiss') {
-      this.setCompanion(true);
-      const x = this.reaction === 'kiss' ? .39 : .44;
-      this.male.target.set(-x, 0, .17);
-      this.female.target.set(x, 0, .15);
-    }
+    if(this.companionVisible && POSE_SPACING[this.reaction]) this.positionPair(POSE_SPACING[this.reaction]);
   }
 
   walkTo(x = 0) {
     if (this.failed || this.disposed) return;
-    const target = clamp(Number(x) || 0, -1, 1) * 1.23;
-    this.male.target.x = target - (this.companionVisible ? .5 : 0);
-    this.male.target.z = .14;
-    if (this.companionVisible) {
-      this.female.target.x = target + .67;
-      this.female.target.z = .06;
-    }
+    const center=clamp(Number(x)||0,-1,1)*.55;
+    if(this.companionVisible) this.positionPair(1.58,center);
+    else this.male.target.set(clamp(center,-FLOOR_LIMIT,FLOOR_LIMIT),0,.24);
     this.reaction = 'idle';
+    this.pose = 'idle';
   }
 
   setPose(name = 'idle') {
@@ -663,12 +684,59 @@ export class JourneyWorld {
     this.reaction = this.pose;
     this.reactionStart = this.elapsed;
     this.reactionUntil = Infinity;
-    if (this.companionVisible) {
-      const affectionate = this.pose === 'hug' || this.pose === 'kiss';
-      const near = this.pose === 'kiss' ? .39 : .44;
-      this.male.target.set(affectionate ? -near : -.61, 0, .13);
-      this.female.target.set(affectionate ? near : .69, 0, .04);
+    if (this.companionVisible) this.positionPair(POSE_SPACING[this.pose]||1.58);
+  }
+
+  keepBodiesApart() {
+    if(!this.companionVisible) return;
+    const a=this.male.group.position,b=this.female.group.position;
+    this.world.updateMatrixWorld(true);
+    // Exact axis bounds of each transformed ellipsoid protect torsos, heads,
+    // bellies and wings, including every intermediate animation frame.
+    const bounds= penguin => [penguin.torso,penguin.belly,penguin.head.children[0],...penguin.wings.map(g=>g.children[0])].map(mesh=>{
+      const e=mesh.matrixWorld.elements;
+      const rx=Math.hypot(e[0],e[4],e[8]),ry=Math.hypot(e[1],e[5],e[9]),rz=Math.hypot(e[2],e[6],e[10]);
+      return [e[12]-rx,e[12]+rx,e[13]-ry,e[13]+ry,e[14]-rz,e[14]+rz];
+    });
+    let correction=0;
+    for(const l of bounds(this.male))for(const r of bounds(this.female)){
+      if(l[2]<r[3]&&l[3]>r[2]&&l[4]<r[5]&&l[5]>r[4]) correction=Math.max(correction,l[1]-r[0]+.016);
     }
+    if(correction>0){
+      const gap=Math.min(b.x-a.x+correction,FLOOR_LIMIT*2);
+      const center=clamp((a.x+b.x)/2,-FLOOR_LIMIT+gap/2,FLOOR_LIMIT-gap/2);
+      a.x=center-gap/2;b.x=center+gap/2;
+    }
+    a.x=clamp(a.x,-FLOOR_LIMIT,FLOOR_LIMIT);b.x=clamp(b.x,-FLOOR_LIMIT,FLOOR_LIMIT);
+    a.z=clamp(a.z,.14,.30);b.z=clamp(b.z,.14,.30);
+  }
+
+  buildLocations() {
+    this.scenery={};
+    for(const name of ['roses','grove','stars']) {
+      const group=new THREE.Group();this.world.add(group);this.scenery[name]=group;
+    }
+    const leaf=material('#637e69',.94);
+    for(let i=0;i<7;i++) {
+      const x=-2.1+i*.27,z=-1.1-Math.sin(i)*.12;
+      sphere(this.scenery.roses,leaf,[x,.18,z],[.22,.20,.18],18);
+      flower(this.scenery.roses,i%2?'#dba7a1':'#edd4b5',[x,.37,z],.095);
+    }
+    const bark=material('#665044',.96),pine=material('#496d63',.92);
+    for(const [x,z,h] of [[-2,-1.02,1.5],[1.95,-1.08,1.25]]) {
+      mesh(new THREE.CylinderGeometry(.05,.08,h,12),bark,this.scenery.grove,[x,h/2,z]);
+      for(let i=0;i<3;i++) mesh(new THREE.ConeGeometry(.38-i*.07,.64,20),pine,this.scenery.grove,[x,.55+i*.36,z]);
+    }
+    const starlight=material('#eac3a5',.5,{emissive:'#eac3a5',emissiveIntensity:.35});
+    for(let i=0;i<5;i++) sphere(this.scenery.stars,starlight,[-1.8+i*.9,2.45+Math.sin(i)*.3,-1.4],[.025,.025,.025],12);
+    tube(this.scenery.stars,[[-1.8,2.45,-1.4],[-.9,2.7,-1.4],[0,2.72,-1.4],[.9,2.49,-1.4],[1.8,2.22,-1.4]],.005,starlight,32);
+  }
+
+  setLocation(name='roses') {
+    this.location=name;
+    if(!this.scenery) return;
+    const exploring=['journey','final'].includes(this.sceneName);
+    for(const [key,group] of Object.entries(this.scenery)) group.visible=exploring && key===name;
   }
 
   setReducedMotion(value) { this.reducedMotion = !!value; }
@@ -683,6 +751,7 @@ export class JourneyWorld {
     const state = { reaction: this.reaction, scene: this.sceneName };
     this.male.animate(t, dt, this.reducedMotion, state);
     if (this.female.group.visible) this.female.animate(t, dt, this.reducedMotion, state);
+    this.keepBodiesApart();
     this.cameraTarget.lerp(this.desiredCameraTarget, 1 - Math.exp(-dt * 3));
     const sway = this.reducedMotion ? 0 : Math.sin(t * .12) * .055;
     const desiredPosition = new THREE.Vector3(this.cameraTarget.x + this.cameraDistance * .31 + sway, 2.8, this.cameraDistance * .92);
