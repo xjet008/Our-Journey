@@ -41,3 +41,18 @@ test('A reset and gentler motion suppress stepping after a direct world change',
   const sample=stride.advance({x:8,z:-21,yaw:0},1/60,false);
   assert.equal(sample.blend,0);assert.equal(sample.lean,0);assert.ok(sample.feet.every(f=>f.lift===0));
 });
+
+test('Short feet stay under the body during travel, turns and distance changes',()=>{
+  for(const dt of [1/120,1/60,1/30,.1])for(const offset of [0,.08]){
+    const stride=new PenguinStride(offset);
+    let root={x:0,z:0,yaw:0};
+    for(let i=0;i<600;i++){
+      const yaw=i<200?0:i<400?Math.PI/2:Math.PI;
+      root={x:root.x+Math.sin(yaw)*1.85*dt+(i===250?.3:0),z:root.z+Math.cos(yaw)*1.85*dt,yaw};
+      const sample=stride.advance(root,dt);
+      sample.feet.forEach((foot,k)=>{
+        assert.ok(Math.hypot(foot.x-(k?1:-1)*.205,foot.z-.123)<=.200001,'Ankle reaches too far from the body');
+      });
+    }
+  }
+});

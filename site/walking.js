@@ -38,7 +38,8 @@ export class PenguinStride {
     const moving=enabled&&distance>.00002&&distance<.45;
     const wasMoving=this.blend>.03;
     this.blend=damp(this.blend,moving?clamp(speed/.4):0,dt,moving?12:10);
-    const stride=.96;
+    // Short steps keep a penguin's ankles under its round body.
+    const stride=.52;
     if(moving){this.direction={x:dx/distance,z:dz/distance};this.phase+=distance/stride;}
     const sin=Math.sin(root.yaw),cos=Math.cos(root.yaw);
     const world=(x,z)=>({x:root.x+x*cos+z*sin,z:root.z-x*sin+z*cos});
@@ -55,6 +56,13 @@ export class PenguinStride {
         point={x:foot.swing.start.x+(foot.swing.target.x-foot.swing.start.x)*e,z:foot.swing.start.z+(foot.swing.target.z-foot.swing.start.z)*e};
         lift=Math.sin(p*Math.PI)**2*.105;pitch=-Math.sin(p*Math.PI)*.16;
       }else if(foot.swing){foot.plant=foot.swing.target;foot.swing=null;point=foot.plant;}
+      // A turn or a distance adjustment can move the torso away from a
+      // planted footprint. Release that footprint before the leg stretches.
+      const reach=Math.hypot(point.x-rest.x,point.z-rest.z);
+      if(reach>.20){
+        point={x:rest.x+(point.x-rest.x)*.20/reach,z:rest.z+(point.z-rest.z)*.20/reach};
+        if(!swing)foot.plant=point;
+      }
       const x=point.x-root.x,z=point.z-root.z;
       return {x:side*.205+(x*cos-z*sin-side*.205)*this.blend,z:.123+(x*sin+z*cos-.123)*this.blend,lift:lift*this.blend,pitch:pitch*this.blend,support:!swing,world:point};
     });

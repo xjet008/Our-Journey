@@ -398,7 +398,7 @@ class Penguin {
       const step=stride.feet[i];
       foot.position.x=step.x;
       foot.position.y=.065+(sitting?-.04:0)+step.lift;
-      foot.position.z=sitting?lerp(foot.position.z,.38,1-Math.exp(-dt*6)):step.z;
+      foot.position.z=sitting?lerp(foot.position.z,.21,1-Math.exp(-dt*6)):step.z;
       foot.rotation.x=step.pitch;
     });
     if (!reduced && t > this.blinkAt) {
@@ -411,7 +411,7 @@ class Penguin {
     this.body.rotation.z=lerp(oldLean,this.body.rotation.z,1-Math.exp(-dt*7));
     this.body.position.y=lerp(oldLift,this.body.position.y,1-Math.exp(-dt*9));
     this.feet.forEach((foot,i)=>{
-      const hip=new THREE.Vector3((i?1:-1)*.205,.27,.03).applyEuler(this.body.rotation).add(this.body.position);
+      const hip=new THREE.Vector3((i?1:-1)*.205,.23,.03).applyEuler(this.body.rotation).add(this.body.position);
       const ankle=foot.position.clone().add(new THREE.Vector3(0,.035,-.055)),limb=ankle.clone().sub(hip);
       this.legs[i].position.copy(hip).addScaledVector(limb,.5);this.legs[i].scale.y=limb.length();
       this.legs[i].quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),limb.normalize());

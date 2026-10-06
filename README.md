@@ -75,3 +75,9 @@ Validation: 13 Node tests pass, including exact arrivals at 120/60/30/10 frames 
 Automatic arrival, the Continue button and Escape use one short covered fade into the letter scene. The outgoing doorway stays visible until the fade covers it; the penguins, resting feet and camera are prepared underneath before the incoming scene is revealed. The doorway caption remains visible throughout the walk. Repeated Continue/arrival events share one handoff, and restart/page cleanup cancels it without reopening an old chapter. Gentler motion uses a shorter fade.
 
 Validation: all 16 Node tests pass, including cover-before-swap ordering, repeated triggers and cancellation during a scene change. Automatic arrival, early Continue and gentler motion were checked in the actual desktop interface. Geometry checks also verify that an early exit lands at the entrance with the camera ready, feet at rest, and both penguins facing forward at all three distances. Existing mobile camera checks pass; mobile handoff input and physical phone hardware are not verified.
+
+## Compact penguin steps
+
+Walking uses shorter alternating strides with a bounded ankle reach during turns and personal-space changes, keeping the little feet beneath the body. Leg attachments sit lower inside the torso, and seated feet tuck closer in.
+
+Validation: all 17 Node tests pass, including bounded foot reach at four frame rates with turns and distance changes. Browser geometry checks pass for 32,996 sampled frames, checking foot reach and leg length in addition to walking surfaces, arrival, poses, body clearance, bench clearance and camera framing. The doorway walk was also inspected in the actual desktop interface.

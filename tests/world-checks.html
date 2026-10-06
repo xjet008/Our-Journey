@@ -12,7 +12,11 @@ function inspect(){
  const r=p=>Math.hypot(.575*Math.cos(p.group.rotation.y),.54*Math.sin(p.group.rotation.y));
  minGap=Math.min(minGap,b.x-a.x-r(w.male)-r(w.female));assert(b.x-a.x>=r(w.male)+r(w.female)+.089,'Body clearance');
  for(const p of [a,b])assert(Math.abs(p.x-(w.pairCenterX??w.anchor.x))<=1.241,'Outside safe floor');
- for(const p of [w.male,w.female])p.wings.forEach((wing,i)=>assert(wing.position.distanceTo(new THREE.Vector3((i?1:-1)*.5,1.25,.035))<.001,'Detached shoulder'));
+ for(const p of [w.male,w.female]){
+  p.wings.forEach((wing,i)=>assert(wing.position.distanceTo(new THREE.Vector3((i?1:-1)*.5,1.25,.035))<.001,'Detached shoulder'));
+  p.feet.forEach((foot,i)=>assert(Math.hypot(foot.position.x-(i?1:-1)*.205,foot.position.z-.123)<=.201,'Foot stretches away from body'));
+  p.legs.forEach(leg=>assert(leg.scale.y<.36,'Leg stretches too long'));
+ }
  if(samples%8===0){
   const solids=p=>[p.torso,p.belly,p.head.children[0]];const point=new THREE.Vector3();
   for(const [own,other,label] of [[w.male,w.female,'male'],[w.female,w.male,'female']])for(const mesh of [...solids(own),...own.legs,...own.wings.map(g=>g.children[0])])for(const target of solids(other)){
