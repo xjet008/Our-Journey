@@ -40,9 +40,16 @@ h1:focus,h2:focus{outline:none}
 .immersed #stars{pointer-events:none;inset:7% 0 40% 42%}
 #worldHotspots{position:absolute;inset:0;pointer-events:none}
 .world-hotspot{position:absolute;transform:translate(-50%,-50%);min-width:52px;min-height:52px;padding:10px;color:#f9dfb8;pointer-events:auto;display:grid;place-items:center;text-shadow:0 2px 8px #132831}
-.world-hotspot>span{font:26px Georgia;filter:drop-shadow(0 0 9px #eac3a577);border:1px solid #eac3a566;border-radius:50%;background:#18353c99;width:44px;height:44px;display:grid;place-items:center}
+.world-hotspot>span{position:relative;font:27px Georgia;color:#fff1d1;filter:drop-shadow(0 0 12px #eac3a5a6);border:1px solid #f0d1a9d9;border-radius:50%;background:#18353ce8;width:48px;height:48px;display:grid;place-items:center;box-shadow:0 0 0 4px #eac3a519,inset 0 0 12px #eac3a51c;transition:background .2s,box-shadow .2s}
+.world-hotspot>span:before{content:'';position:absolute;inset:-7px;border:1px solid #f0d1a980;border-radius:50%;pointer-events:none;animation:discoveryHalo 3.4s ease-out infinite}
+.world-hotspot>span:after{content:'✧';position:absolute;top:-7px;right:-5px;font:14px Georgia;color:#ffebbd;background:#20383c;border-radius:50%;pointer-events:none}
+.world-hotspot:hover>span,.world-hotspot:focus-visible>span{background:#36534f;box-shadow:0 0 0 5px #eac3a52b,0 0 22px #eac3a55c}
+@keyframes discoveryHalo{0%,20%{transform:scale(.96);opacity:.65}85%,100%{transform:scale(1.35);opacity:0}}
+.reduced .world-hotspot>span:before{animation:none;opacity:.45}
+@media(prefers-reduced-motion:reduce){.world-hotspot>span:before{animation:none;opacity:.45}}
 .world-hotspot small{position:absolute;top:54px;white-space:nowrap;font-size:10px;background:#173139e8;border-radius:3px;padding:5px 8px;opacity:0;transition:opacity .2s}
 .world-hotspot:hover small,.world-hotspot:focus-visible small{opacity:1}
+.world-hotspot[data-world="bench"] small{opacity:1;top:59px;border:1px solid #eac3a55e}
 .discoveries{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 18px}
 .discoveries button{font-size:11px;min-height:44px;border-bottom:1px solid #eac3a566;color:var(--peach);padding:8px 10px}
 .immersed .route{padding:10px 0;min-height:56px}.immersed .route small{font-size:10px}.immersed .route strong{font-size:19px}
@@ -68,7 +75,7 @@ select:focus-visible{outline:2px solid var(--peach)}
  .immersed #miniActions{position:relative;right:auto;bottom:auto;padding-top:18px;max-width:none;justify-content:flex-start}
  .immersed #walkHint{top:60svh;bottom:auto;left:50%;font-size:9px;padding:3px 8px}
  .immersed #walkHint>div{display:none}.immersed #stars{inset:12% 0 48%}
- .immersed h2{font-size:32px}.immersed .world-hotspot small{display:none}
+ .immersed h2{font-size:32px}.immersed .world-hotspot small{display:none}.immersed .world-hotspot[data-world="bench"] small{display:block}
  .immersed .route-list{gap:0}.immersed .route{min-height:55px}.immersed .intro{margin-bottom:18px}
  .cinematic main,body.cinematic[data-scene] main{padding:0;min-height:100svh}
  .cinematic #story{padding:0;background:none;position:absolute;inset:0}.cinematic #story:before{display:none}

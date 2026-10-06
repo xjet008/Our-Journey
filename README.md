@@ -83,3 +83,9 @@ Walking uses shorter alternating strides with a bounded ankle reach during turns
 Both penguins' leg meshes are hidden in every scene and pose, including walking and selfie captures. Only the body and little feet are visible.
 
 Validation: all 17 Node tests pass, including bounded foot reach at four frame rates with turns and distance changes. Browser geometry checks pass for 32,996 sampled frames, checking foot reach and leg length in addition to walking surfaces, arrival, poses, body clearance, bench clearance and camera framing. The doorway walk was also inspected in the actual desktop interface.
+
+## Open lake landing and discovery highlights
+
+The lake deck's bench-side rail is removed, leaving a clear approach onto the bank. World interaction markers have brighter outlines, warm glow rings and small sparkle accents. The bench marker keeps its action label visible, and selecting a marker gives a brief response. Gentler motion uses static highlights.
+
+The bench marker sits at the visible end of the seat, and the ripple marker is raised above the water to avoid the reading area and lower controls. All 17 Node tests and 32,996 sampled geometry frames passed; the actual bench marker was clicked and both penguins' seating checked in the desktop interface.

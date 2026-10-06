@@ -121,6 +121,8 @@ function showHotspots(points){
  if(enabled)points.forEach(p=>{const el=root.querySelector(`[data-world="${p.id}"]`);if(el){el.style.left=p.x+'%';el.style.top=p.y+'%';const stage=$('#worldStage').getBoundingClientRect(),text=story.getBoundingClientRect(),x=stage.left+stage.width*p.x/100,y=stage.top+stage.height*p.y/100;const safe=y>90&&(innerWidth<=700?y<text.top-30:x>text.right+35&&y<innerHeight-170);el.hidden=!p.visible||!safe;}});
 }
 function discover(id){
+ const marker=$('#worldHotspots').querySelector(`[data-world="${id}"]>span`);
+ if(marker&&!reduced)marker.animate([{transform:'scale(1)'},{transform:'scale(1.18)'},{transform:'scale(1)'}],{duration:450,easing:'ease-out'});
  if(id==='letter'){go('letter');return;}
  if(id==='next'){rememberChapter(state);state.location=state.location==='roses'?'grove':'stars';render();window.scrollTo({top:0,behavior:reduced?'instant':'smooth'});moment(`Wandered through ${locations[state.location].title.toLowerCase()}`);return;}
  if(id==='flower'){world?.interact(id);openMoment('flower');return;}

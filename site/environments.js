@@ -81,7 +81,8 @@ export class RomanticWorld {
       spot('lantern','Light the lantern path','✧',[2.1,.6,.9]);spot('next','Follow the lights to the lake','→',[1.9,.5,-2.0]);
     }else if(name==='stars'){
       const water=this.ball(g,'#426568',[0,-.48,0],[7.5,.022,6]);water.userData.dynamic=true;water.material=this.mat('#426568',{roughness:.65,metalness:.05});record.water=water;
-      this.planks(g,5.2,4.8);this.rail(g,-2.4,-2.2,4.4);this.rail(g,2.4,-2.2,4.4);
+      // Keep the lake deck open on the bench side so the pair can walk onto the bank.
+      this.planks(g,5.2,4.8);this.rail(g,2.4,-2.2,4.4);
       const bank=new THREE.Group();bank.position.set(-4,-.025,0);g.add(bank);this.ground(bank,5.8,5.1,'#76654b');
       this.tree(g,-6.1,-2.2,2.3);
       this.box(g,'#937353',[bench.x,.45,bench.z],[3.9,.12,.80]);
@@ -89,7 +90,7 @@ export class RomanticWorld {
       for(const x of [-1.72,1.72])this.box(g,'#735a46',[bench.x+x,.70,bench.z-.39],[.08,.78,.08]);
       for(const x of [-1.6,1.6])this.box(g,'#735a46',[bench.x+x,.22,bench.z-.05],[.1,.50,.44]);
       for(let i=0;i<3;i++){const ring=new THREE.Mesh(new THREE.RingGeometry(.9,1,40),new THREE.MeshBasicMaterial({color:'#c7ded0',transparent:true,opacity:0,side:THREE.DoubleSide,depthWrite:false}));ring.rotation.x=-Math.PI/2;ring.position.set(3.1,-.44,1.2);g.add(ring);record.rings.push(ring);}
-      spot('water','Make a ripple','≈',[3,-.35,1.3]);spot('bench','Sit beside the lake','⌑',[bench.x,.9,-.9]);spot('moon','Look at the moon','☾',[0,3.4,-4]);spot('note','Find the hidden note','✧',[2,.6,-.9]);
+      spot('water','Make a ripple','≈',[2.9,.15,.9]);spot('bench','Sit beside the lake','⌑',[bench.x+1.55,.75,bench.z+.45]);spot('moon','Look at the moon','☾',[0,3.4,-4]);spot('note','Find the hidden note','✧',[2,.6,-.9]);
       const constellation=new THREE.Group();constellation.userData.dynamic=true;g.add(constellation);record.constellation=constellation;
       const points=[[-2.3,3.2,-4],[-1.8,3.7,-4],[-1.1,3.4,-4],[-.5,4,-4],[.2,3.8,-4]];
       for(const p of points)this.ball(constellation,'#f3dfb6',p,[.04,.04,.04],{emissive:'#e4c486',emissiveIntensity:1.0});
