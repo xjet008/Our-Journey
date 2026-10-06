@@ -61,3 +61,11 @@ Restart clears environmental discoveries, camera gestures, reaction and walking 
 The audio bed continues between locations with gradual filter changes. Discovery chimes are short and limited; chords cannot stack. Sound fades down while the page is hidden. On leaving the page, audio and rendering resources are released.
 
 Validation: ten Node tests and 16,380 sampled animation frames passed, including no sampled body penetration or bench-seat intersection. Full mobile journey checked at 390×844, with narrow portrait and landscape layout checks. The generated and downloaded memory PNG was verified at 1500×4421 pixels. Hardware Safari/iOS and Android GPU performance remain unverified.
+
+## Walking and arrival update
+
+The penguins now take alternating steps with planted support feet, independent torso waddling, gentle foot lifts and opposite flipper swings. Steps follow actual distance traveled. Each path starts softly, maintains a comfortable pace, brakes to its exact landing and allows a brief turn at corners. Personal distance adjustments remain smooth during travel.
+
+Forward and backward transitions retain the departure floor until the pair arrives. Quick location choices finish the current safe path before following the latest route. Camera presets blend along the path. The doorway shows the letter only after both penguins have arrived, lowered their feet and turned toward the visitor. Interaction and selfie pose requests made during travel wait for arrival. On mobile, a location choice scrolls back to the world so the walk stays visible.
+
+Validation: 13 Node tests pass, including exact arrivals at 120/60/30/10 frames per second, speed bounds, alternating foot lifts and stable support footprints. The expanded browser geometry checks passed over 32,000 sampled frames, including every forward/backward route at all three tested distances, one arrival notification per trip, safe loaded walking surfaces, doorway completion, deferred contact, and the existing pose/bench/mobile-camera checks. Mobile doorway entry and rapid route changes were also exercised through the actual interface without overflow or console errors.

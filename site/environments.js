@@ -114,10 +114,14 @@ export class RomanticWorld {
     for(const meshes of groups.values()){if(meshes.length<2)continue;const batch=new THREE.InstancedMesh(meshes[0].geometry,meshes[0].material,meshes.length);batch.receiveShadow=true;meshes.forEach((m,i)=>{batch.setMatrixAt(i,new THREE.Matrix4().multiplyMatrices(inverse,m.matrixWorld));m.parent.remove(m);});batch.computeBoundingSphere();root.add(batch);}
   }
   setVisible(value){this.visible=value;this.landmarks.visible=value;for(const r of this.cache.values())r.group.visible=value;}
-  enter(name){
+  enter(name,{from,next}={}){
     if(!places[name])name='entrance';this.active=name;
-    this.build(name);this.build(places[name].next);
-    while(this.cache.size>3){const key=[...this.cache.keys()].find(k=>k!==name&&k!==places[name].next);this.remove(key);}
+    const neighbor=next||places[name].next;
+    const keep=new Set([name,from,neighbor].filter(n=>places[n]));
+    for(const key of keep)this.build(key);
+    // Retain the departure landing throughout forward and backward travel.
+    // Disposing it early makes the floor vanish under the walking penguins.
+    while(this.cache.size>3){const key=[...this.cache.keys()].find(k=>!keep.has(k));this.remove(key);}
     return new THREE.Vector3(...places[name].anchor);
   }
   interact(id,t){if(this.effects[id]!=null&&t-this.effects[id]<1)return id;this.effects[id]=t;return id;}

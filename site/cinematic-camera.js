@@ -4,11 +4,13 @@ import {smooth,clamp} from './proximity.js';
 export class GuidedCamera {
   constructor(camera){this.camera=camera;this.drag=0;this.look=0;this.gatewayStart=null;this.position=new THREE.Vector3();this.target=new THREE.Vector3();}
   gateway(now){this.gatewayStart=now;}
-  update({anchor,scene,place,elapsed,dt,reduced,wide,aspect}){
+  update({anchor,scene,place,fromPlace,travelProgress=1,travelling=false,elapsed,dt,reduced,wide,aspect}){
     const portrait=aspect<.8;
     const inside=!['welcome','customize'].includes(scene);
     let distance=portrait?11.6:scene==='selfie'?9.0:wide&&inside?10.0:9.1;
-    const preset={entrance:[.13,3.5,.95],roses:[-.08,3.45,1.00],grove:[.16,3.9,1.12],stars:[.08,3.25,1.0],viewpoint:[-.10,3.1,1.10]}[place]||[.22,3.35,1.02];
+    const presets={entrance:[.13,3.5,.95],roses:[-.08,3.45,1.00],grove:[.16,3.9,1.12],stars:[.08,3.25,1.0],viewpoint:[-.10,3.1,1.10]};
+    const destination=presets[place]||[.22,3.35,1.02],origin=presets[fromPlace]||destination;
+    const preset=destination.map((value,i)=>origin[i]+(value-origin[i])*smooth(travelProgress));
     const yaw=(portrait?.03:preset[0])+this.drag*.12;
     const look=this.look*(portrait?.32:1);
     if(inside&&wide)distance+=.5;
@@ -23,7 +25,7 @@ export class GuidedCamera {
       this.position.set(anchor.x+Math.sin(angle)*follow,3.6,anchor.z+Math.cos(angle)*follow);
     }
     if(reduced&&scene==='portal')this.position.set(anchor.x+1.7,3.0,anchor.z+9);
-    const blend=1-Math.exp(-dt*(scene==='portal'?2.8:3.0));
+    const blend=1-Math.exp(-dt*(travelling?5:scene==='portal'?2.8:3.0));
     this.camera.position.lerp(this.position,blend);
     this.currentTarget??=this.target.clone();this.currentTarget.lerp(this.target,blend);this.camera.lookAt(this.currentTarget);
     this.camera.fov=portrait?45:36;this.camera.updateProjectionMatrix();

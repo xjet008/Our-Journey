@@ -24,8 +24,8 @@ function inspect(){
 }
 function step(n=100){for(let i=0;i<n;i++){w.frame((w.lastTime||performance.now())+1000/60);cancelAnimationFrame(w.frameId);inspect();}}
 const poses=['Standing together','Side hug','Funny pose','Heart pose','Penguin kiss','Looking at the stars'];
-for(const d of [0,55,100]){w.setScene('selfie');w.setDistance(d);w.anchor.copy(w.destination);w.male.group.position.copy(w.male.target);w.female.group.position.copy(w.female.target);step(60);for(const pose of poses){w.setPose(pose);step(170);assert(w.spacing.selected===d,'Pose lost distance');}w.setPose('Standing together');for(const x of [-10,-1,0,1,10]){w.walkTo(x);step(40);assert(w.spacing.selected===d,'Walking lost distance');}}
-for(const place of ['roses','grove','stars','viewpoint','entrance','roses','grove','stars']){w.setScene('journey');w.travelTo(place);w.anchor.copy(w.destination);step(90);assert(w.environments.cache.size<=3,'Scene cache unbounded');}
+for(const d of [0,55,100]){w.setScene('selfie');w.setDistance(d);w.settle();w.male.group.position.copy(w.male.target);w.female.group.position.copy(w.female.target);step(60);for(const pose of poses){w.setPose(pose);step(170);assert(w.spacing.selected===d,'Pose lost distance');}w.setPose('Standing together');for(const x of [-10,-1,0,1,10]){w.walkTo(x);step(40);assert(w.spacing.selected===d,'Walking lost distance');}}
+for(const place of ['roses','grove','stars','viewpoint','entrance','roses','grove','stars']){w.setScene('journey');w.travelTo(place);w.settle();step(90);assert(w.environments.cache.size<=3,'Scene cache unbounded');}
 for(const mood of ['happy','wave','flower','shy','curious','patient','surprised','hand','hug','kiss']){w.setDistance(100);w.react(mood);step(480);assert(w.spacing.selected===100,'Reaction changed preference');}
 for(const delta of [100,1000])for(const selected of [0,55,100])for(const gesture of ['hug','kiss','hand']){w.setScene('selfie');w.setPose('Standing together');w.setDistance(selected);w.settle();w.react(gesture);for(let i=0;i<80;i++){w.frame((w.lastTime||performance.now())+delta);cancelAnimationFrame(w.frameId);inspect();}assert(w.spacing.selected===selected,'Slow frame changed preference');}
 assert(!w.renderer.shadowMap.enabled,'Low quality shadows enabled');assert(w.renderer.getPixelRatio()<=1,'Low quality DPR too high');
@@ -42,13 +42,38 @@ for(const [width,height] of [[390,844],[320,568],[844,390],[568,320],[1440,900]]
 }
 w.canvas.style.width='900px';w.canvas.style.height='550px';w.resize();
 w.reset();w.setScene('journey');w.travelTo('stars');w.setReducedMotion(true);w.interact('bench');step(480);assert(w.spacing.selected===55,'Reduced motion lost preference');w.setReducedMotion(false);
-w.setScene('selfie');w.setPose('Side hug');step(150);const held=w.spacing.override;w.setScene('memory');assert(w.spacing.override===held&&w.pose==='hug','Memory interrupted held selfie pose');step(10);w.reset();
+w.setScene('selfie');w.setPose('Side hug');step(480);const held=w.spacing.override;w.setScene('memory');assert(w.spacing.override===held&&w.pose==='hug','Memory interrupted held selfie pose');step(10);w.reset();
 w.setScene('journey');w.travelTo('entrance');w.settle();w.travelTo('roses');step(10);w.travelTo('grove');step(10);w.travelTo('stars');
 const surfaces=Object.entries(decks).map(([owner,d])=>{const [x,,z]=places[owner].anchor;return {owner,x0:x-d.width/2,x1:x+d.width/2,z0:z-d.depth/2,z1:z+d.depth/2};});
 for(const c of connectors){const [x,,z]=places[c.owner].anchor,lo=Math.min(c.start,c.end),hi=Math.max(c.start,c.end);surfaces.push({owner:c.owner,x0:x+(c.axis==='x'?lo:-c.width/2),x1:x+(c.axis==='x'?hi:c.width/2),z0:z+(c.axis==='z'?lo:-c.width/2),z1:z+(c.axis==='z'?hi:c.width/2)});}
-for(let i=0;i<900;i++){step(1);for(const p of [w.male,w.female])for(const foot of p.feet){const {x,z}=foot.getWorldPosition(new THREE.Vector3());assert(surfaces.some(s=>w.environments.cache.has(s.owner)&&x>=s.x0&&x<=s.x1&&z>=s.z0&&z<=s.z1),'Rapid navigation leaves a loaded walking surface');}}
+for(let i=0;i<1400;i++){step(1);for(const p of [w.male,w.female])for(const foot of p.feet){const {x,z}=foot.getWorldPosition(new THREE.Vector3());assert(surfaces.some(s=>w.environments.cache.has(s.owner)&&x>=s.x0&&x<=s.x1&&z>=s.z0&&z<=s.z1),'Rapid navigation leaves a loaded walking surface');}}
 assert(w.anchor.distanceTo(w.destination)<.02&&!w.travelQueue.length,'Rapid route did not reach the lake');
-w.setScene('selfie');w.anchor.copy(w.destination);w.setDistance(100);w.setPose('Standing together');step(100);
+let walkingSamples=0,arrivals=0;
+w.options.onArrival=()=>{arrivals++;assert(w.hasArrived(),'Arrival fired before penguins settled');};
+for(const selected of [0,55,100])for(const [from,to] of [['entrance','viewpoint'],['viewpoint','entrance'],['roses','stars'],['stars','roses']]){
+ w.reset();w.setScene('journey');w.travelTo(from);w.settle();w.setDistance(selected);step(70);
+ const before=arrivals;w.travelTo(to);let count=0;
+ do{
+  step(1);count++;walkingSamples++;
+  for(const p of [w.male,w.female])for(const foot of p.feet){
+   const {x,y,z}=foot.getWorldPosition(new THREE.Vector3());
+   assert(surfaces.some(s=>w.environments.cache.has(s.owner)&&x>=s.x0&&x<=s.x1&&z>=s.z0&&z<=s.z1),'Forward/backward foot leaves a loaded surface');
+   assert(y>=.06&&y<.20,'Walking foot floats or sinks');
+  }
+  assert(w.environments.cache.size<=3,'Walking scene cache unbounded');
+ }while(!w.hasArrived()&&count<2200);
+ assert(w.hasArrived(),`Incomplete arrival ${from} to ${to}`);
+ assert(w.anchor.distanceTo(new THREE.Vector3(...places[to].anchor))<.00001,'Arrival misses destination');
+ assert(arrivals===before+1,'Arrival must notify exactly once');assert(w.spacing.selected===selected,'Walking altered partner distance');
+ step(40);assert(arrivals===before+1,'Arrival repeated while idle');
+}
+w.reset();w.setScene('customize');step(50);w.beginGateway();let gatewayFrames=0;
+while(!w.hasArrived()&&gatewayFrames<600){step(1);gatewayFrames++;}
+assert(w.hasArrived()&&w.anchor.z===-6,'Gateway did not complete its walk');
+assert(w.male.stride.blend<.02&&w.female.stride.blend<.02,'Gateway ended during a footstep');
+w.setScene('journey');w.travelTo('stars');w.react('hug');step(1400);
+assert(w.anchor.z===-21&&w.hasArrived(),'Contact request blocked world arrival');
+w.setScene('selfie');w.settle();w.setDistance(100);w.setPose('Standing together');step(100);
 for(const pose of poses){w.setPose(pose);step(170);w.renderer.render=draw;draw(w.scene,w.camera);const item=document.createElement('article');item.innerHTML=`<h2>${pose}</h2><img alt="${pose}" src="${w.capture()}">`;document.querySelector('.grid').append(item);w.renderer.render=()=>{};}
-document.querySelector('#result').textContent=JSON.stringify({passed:errors.size===0&&penetrations===0,samples,errors:[...errors],penetrations,issues,minGap,cache:w.environments.cache.size,drawCalls:w.renderer.info.render.calls,triangles:w.renderer.info.render.triangles},null,2);w.dispose();
+document.querySelector('#result').textContent=JSON.stringify({passed:errors.size===0&&penetrations===0,samples,walkingSamples,arrivals,gatewayFrames,errors:[...errors],penetrations,issues,minGap,cache:w.environments.cache.size,drawCalls:w.renderer.info.render.calls,triangles:w.renderer.info.render.triangles},null,2);w.dispose();
 </script>

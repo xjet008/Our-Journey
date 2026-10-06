@@ -4,6 +4,7 @@ import {createFlipper, bendFlipper, moodPose, moodAliases} from './character-mot
 import {RomanticWorld, places} from './environments.js';
 import {GuidedCamera, AdaptiveQuality} from './cinematic-camera.js';
 import {bench} from './world-layout.js';
+import {WalkingLeg, PenguinStride} from './walking.js';
 
 const TAU = Math.PI * 2;
 const FLOOR_LIMIT = 1.24;
@@ -184,6 +185,7 @@ class Penguin {
     for (const side of [-1, 1]) {
       const foot = sphere(this.body, orange, [side * .205, .065, .123], [.21, .072, .25], 24);
       foot.rotation.y = -side * .11;
+      this.group.add(foot); // The planted feet do not inherit torso bob or roll.
       this.feet.push(foot);
       const pivot = new THREE.Group();
       pivot.position.set(side * .50, 1.25, .035);
@@ -212,6 +214,7 @@ class Penguin {
     this.baseRotation = female ? -.2 : .18;
     this.group.rotation.y = this.baseRotation;
     this.phase = female ? 1.7 : 0;
+    this.stride=new PenguinStride(female?.08:0);
     this.blinkAt = 2 + Math.random() * 3;
     this.blinkStart = -10;
     this.accessoryName = 'bow';
@@ -289,20 +292,22 @@ class Penguin {
   animate(t, dt, reduced, state) {
     const oldHead=this.head.rotation.clone(),oldLean=this.body.rotation.z,oldLift=this.body.position.y;
     const previous=this.group.position.clone();
-    const delta = this.group.position.distanceTo(this.target);
-    this.group.position.lerp(this.target, 1 - Math.exp(-dt * 5.5));
-    const walking = !reduced && delta > .015;
-    const moved=this.group.position.distanceTo(previous);
-    this.gait=(this.gait||this.phase)+moved*10;
-    const tempo=this.gait;
+    if(state.directTravel){
+      this.group.position.x+=state.anchorDelta.x;this.group.position.z+=state.anchorDelta.z;
+      this.group.position.lerp(this.target,1-Math.exp(-dt*7));
+    }
+    else this.group.position.lerp(this.target, 1 - Math.exp(-dt * 7));
+    const moved=Math.hypot(this.group.position.x-previous.x,this.group.position.z-previous.z);
+    const walking = !reduced && state.walkAllowed!==false && moved/Math.max(dt,.001)>.03;
+    const tempo=this.stride.phase*TAU;
     const bob = reduced ? 0 : Math.sin(t * 1.9 + this.phase) * .013;
     const sitting = state.reaction === 'sitting';
-    this.body.position.y = (sitting ? -.14 : bob) + (walking ? Math.abs(Math.sin(tempo)) * .046 : 0);
+    this.body.position.y = (sitting ? -.14 : bob);
     this.torso.position.y = lerp(this.torso.position.y, sitting ? .85 : .925, 1 - Math.exp(-dt * 6));
     this.torso.scale.y = lerp(this.torso.scale.y, sitting ? (this.female ? .7 : .72) : (this.female ? .79 : .81), 1 - Math.exp(-dt * 6));
     this.belly.position.y = lerp(this.belly.position.y, sitting ? .82 : .94, 1 - Math.exp(-dt * 6));
     this.belly.scale.y = lerp(this.belly.scale.y, sitting ? .51 : .599, 1 - Math.exp(-dt * 6));
-    this.body.rotation.z = walking ? Math.sin(tempo) * .045 : 0;
+    this.body.rotation.z = 0;
     this.head.rotation.set(0, 0, this.female ? .025 : 0);
     const leftRest = sitting ? -.6 : -.23;
     const rightRest = sitting ? .6 : .23;
@@ -383,10 +388,15 @@ class Penguin {
       wing.children[0].userData.bent=wrap||heart||hand;
       wing.position.set((i===0?-1:1)*.50,1.25,.035);
     });
-    this.feet.forEach((foot, i) => {
-      foot.position.y = .065 + (sitting ? .10 : 0) + (walking ? Math.max(0, Math.sin(tempo + i * Math.PI)) * .055 : 0);
-      foot.position.z = lerp(foot.position.z, sitting ? .38 : .123, 1 - Math.exp(-dt * 6));
-      foot.rotation.x = walking ? Math.sin(tempo + i * Math.PI) * .12 : 0;
+    const stride=this.stride.advance({x:this.group.position.x,z:this.group.position.z,yaw:this.group.rotation.y},dt,!reduced&&state.walkAllowed!==false&&!sitting);
+    this.body.position.y+=stride.bob;this.body.rotation.z+=stride.lean*.7;
+    this.wings.forEach((wing,i)=>{wing.rotation.x=lerp(wing.rotation.x,(i?1:-1)*stride.swing*.18,1-Math.exp(-dt*9));});
+    this.feet.forEach((foot,i)=>{
+      const step=stride.feet[i];
+      foot.position.x=step.x;
+      foot.position.y=.065+(sitting?-.04:0)+step.lift;
+      foot.position.z=sitting?lerp(foot.position.z,.38,1-Math.exp(-dt*6)):step.z;
+      foot.rotation.x=step.pitch;
     });
     if (!reduced && t > this.blinkAt) {
       this.blinkStart = t;
@@ -655,7 +665,7 @@ export class JourneyWorld {
     this.door.scale.set(name==='portal'?3.0:1,name==='portal'?1.3:1,1);
     this.table.visible=name==='letter';this.table.position.set(-1.95,.005,-4.5);
     this.gatewayPath.visible=name==='portal';
-    if(name==='welcome'||name==='customize'){this.destination.set(0,0,0);this.travelQueue=[];this.requestedPlace=null;this.place=null;this.setCompanion(name==='customize');}
+    if(name==='welcome'||name==='customize'){this.destination.set(0,0,0);this.travelQueue=[];this.requestedPlace=null;this.travelLeg=null;this.arrivalUntil=0;this.pendingPose=null;this.pendingReaction=null;this.place=null;this.setCompanion(name==='customize');}
     else{this.setCompanion(true);if(['letter','distance'].includes(name))this.travelTo('entrance',true);if(['final','selfie','memory'].includes(name))this.travelTo('viewpoint',true);}
     if(changed&&!(['selfie','memory'].includes(previous)&&['selfie','memory'].includes(name))){this.pose='idle';this.spacing.release(this.elapsed);this.reaction='idle';this.reactionUntil=Infinity;this.walkCenter=0;}
     this.keyLight.color.set(['final','memory'].includes(name)?'#ffd7ad':'#ffdfc1');
@@ -663,24 +673,37 @@ export class JourneyWorld {
     if(changed&&!this.immersed)this.settle();
   }
 
-  travelTo(place,immediate=false){
-    if(!places[place]||this.failed)return;
-    if(this.requestedPlace===place)return;
-    this.requestedPlace=place;this.walkCenter=0;
+  travelTo(place){
+    if(!places[place]||this.failed||this.requestedPlace===place)return;
+    this.requestedPlace=place;this.walkCenter=0;this.arrivalNotified=false;
+    this.options.onDeparture?.(place);
+    this.pendingReaction=null;this.pendingPose=null;
+    this.spacing.release(this.elapsed);this.pose='idle';this.reaction='idle';this.reactionUntil=Infinity;
     const route=['entrance','roses','grove','stars','viewpoint'],from=route.indexOf(this.place),to=route.indexOf(place);
     this.travelQueue=[];
     if(from>=0&&from!==to){const direction=to>from?1:-1;for(let i=from+direction;direction>0?i<=to:i>=to;i+=direction)this.travelQueue.push(route[i]);}
-    else this.travelQueue.push(place);
-    if(this.reducedMotion){this.travelQueue=[place];}
-    // Rapid choices update the remaining route while the current segment
-    // finishes. Redirecting from its middle would cut diagonally across water.
-    if(!this.reducedMotion&&from>=0&&this.anchor.distanceTo(this.destination)>.18){
-      if(this.place===place)this.travelQueue=[];
-      return;
-    }
-    const next=this.travelQueue.shift();this.destination.copy(this.environments.enter(next));this.place=next;
-    if(this.reducedMotion){this.anchor.copy(this.destination);}
-    this.positionPair();
+    else if(!this.travelLeg)this.travelQueue.push(place);
+    if(this.reducedMotion){this.travelQueue=[place];this.settle();return;}
+    // Finish the current leg before following a newer choice. Every corner
+    // reaches its landing, with a short turn before the next straight path.
+    if(!this.travelLeg&&this.travelQueue.length)this.startTravelLeg(this.travelQueue.shift());
+  }
+
+  startTravelLeg(next){
+    const from=this.place;this.cameraFromPlace=from;
+    this.destination.copy(this.environments.enter(next,{from,next:this.travelQueue?.[0]}));this.place=next;
+    this.travelLeg=new WalkingLeg(this.anchor,this.destination,this.sceneName==='portal'?1.7:1.85);
+    this.lastTravelYaw=this.travelLeg.yaw;this.arrivalUntil=Infinity;
+  }
+
+  isTravelling(){return !!this.travelLeg||!!this.travelQueue?.length||!!this.requestedPlace&&(!this.arrivalNotified||this.elapsed<(this.arrivalUntil||0));}
+
+  hasArrived(){
+    return !this.travelLeg&&!this.travelQueue?.length&&this.elapsed>=(this.arrivalUntil||0)&&this.anchor.distanceTo(this.destination)<.001&&
+      this.male.group.position.distanceTo(this.male.target)<.025&&
+      (!this.companionVisible||this.female.group.position.distanceTo(this.female.target)<.025)&&
+      this.male.stride.blend<.02&&(!this.companionVisible||this.female.stride.blend<.02)&&
+      (this.arrivalNotified||[this.male,...(this.companionVisible?[this.female]:[])].every(p=>Math.abs(THREE.MathUtils.euclideanModulo(p.baseRotation-p.group.rotation.y+Math.PI,TAU)-Math.PI)<.055));
   }
 
   beginGateway(){
@@ -692,10 +715,11 @@ export class JourneyWorld {
   settle(){
     if(this.failed)return;
     if(this.requestedPlace){this.destination.copy(this.environments.enter(this.requestedPlace));this.place=this.requestedPlace;this.travelQueue=[];}
-    this.anchor.copy(this.destination);this.positionPair();
+    this.travelLeg=null;this.travelProgress=1;this.cameraFromPlace=this.place;this.arrivalUntil=this.elapsed+.4;this.anchor.copy(this.destination);this.positionPair();
     if(!this.companionVisible)this.male.target.copy(this.anchor).add(new THREE.Vector3(-.04,0,.23));
     this.male.group.position.copy(this.male.target);this.female.group.position.copy(this.female.target);
-    this.guidedCamera.update({anchor:this.anchor,scene:this.sceneName,elapsed:this.elapsed,dt:1,reduced:true,wide:this.wide,aspect:this.camera.aspect});
+    for(const p of [this.male,this.female])p.stride.reset({x:p.group.position.x,z:p.group.position.z,yaw:p.group.rotation.y});
+    this.guidedCamera.update({anchor:this.anchor,place:this.place,scene:this.sceneName,elapsed:this.elapsed,dt:1,reduced:true,wide:this.wide,aspect:this.camera.aspect});
   }
 
   setCompanion(visible = true) {
@@ -739,6 +763,7 @@ export class JourneyWorld {
   react(name='happy',variation){
     if(this.failed||this.disposed)return;
     const kind=poseName(name);
+    if(this.isTravelling()){this.pendingReaction={kind,variation};return;}
     if(this.spacing.override&&!['hug','kiss','hand'].includes(kind))return;
     this.reaction=kind;this.reactionStart=this.elapsed;this.variation=variation??Math.floor(Math.random()*3);
     this.reactionUntil=this.elapsed+(['hug','kiss','hand'].includes(kind)?7.6:kind==='sitting'?7:4.5);
@@ -747,6 +772,7 @@ export class JourneyWorld {
 
   walkTo(x=0){
     if(this.failed||this.disposed)return;
+    if(this.isTravelling())return;
     this.walkCenter=clamp(Number(x)||0,-1,1)*.55;
     this.pose='idle';this.reaction='idle';this.spacing.release(this.elapsed);this.positionPair();
   }
@@ -754,7 +780,8 @@ export class JourneyWorld {
   setPose(name='idle'){
     if(this.failed||this.disposed)return;
     const kind=poseName(name);
-    if(kind===this.pose&&this.reactionUntil===Infinity)return;
+    if(this.isTravelling()){this.pendingPose=kind;return;}
+    if(kind===this.pose&&this.reaction===kind&&this.reactionUntil===Infinity)return;
     this.pose=kind;this.reaction=kind;this.reactionStart=this.elapsed;this.reactionUntil=Infinity;
     this.spacing.release();
     if(['hug','kiss'].includes(kind))this.spacing.contact(kind,this.elapsed,{persistent:true});
@@ -763,7 +790,7 @@ export class JourneyWorld {
 
   interact(id){
     if(this.failed)return;
-    if(this.anchor.distanceTo(this.destination)>.3){this.pendingInteractions??=new Set();this.pendingInteractions.add(id);if(this.pendingInteractions.size>6)this.pendingInteractions.delete(this.pendingInteractions.values().next().value);return;}
+    if(this.isTravelling()||!this.hasArrived()){this.pendingInteractions??=new Set();this.pendingInteractions.add(id);if(this.pendingInteractions.size>6)this.pendingInteractions.delete(this.pendingInteractions.values().next().value);return;}
     if(id==='bench'&&this.place!=='stars')return;
     this.environments.interact(id,this.elapsed);
     if(this.spacing.override)return;
@@ -776,7 +803,7 @@ export class JourneyWorld {
   }
 
   hotspots(){
-    if(!this.immersed||this.sceneName==='portal'||this.anchor.distanceTo(this.destination)>.3||this.travelQueue?.length)return [];
+    if(!this.immersed||this.sceneName==='portal'||!this.hasArrived())return [];
     const spots=this.environments.hotspots().filter(s=>s.id!=='letter'||this.sceneName==='letter');
     spots.push({id:'penguin',label:'Say hello to him',icon:'♡',position:this.male.group.position.clone().add(new THREE.Vector3(0,2.5,0))});
     return spots.map(s=>{const p=s.position.clone().project(this.camera);return {...s,x:(p.x+1)*50,y:(1-p.y)*50,visible:p.z<1&&Math.abs(p.x)<.94&&Math.abs(p.y)<.9};});
@@ -802,9 +829,9 @@ export class JourneyWorld {
 
   reset(){
     if(this.failed)return;clearTimeout(this.lookTimer);this.guidedCamera.look=0;this.guidedCamera.drag=0;this.guidedCamera.gatewayStart=null;
-    this.environments.reset();this.pendingInteractions?.clear();this.spacing.release();this.walkCenter=0;this.travelSpeed=0;this.nextIdle=this.elapsed+12;this.lastHotspot=0;this.pose='idle';this.reaction='idle';this.requestedPlace=null;this.travelQueue=[];
+    this.environments.reset();this.pendingInteractions?.clear();this.spacing.release();this.walkCenter=0;this.travelSpeed=0;this.nextIdle=this.elapsed+12;this.lastHotspot=0;this.pose='idle';this.reaction='idle';this.requestedPlace=null;this.travelQueue=[];this.travelLeg=null;this.pendingPose=null;this.pendingReaction=null;this.arrivalNotified=true;
     this.benchBlend=0;this.anchor.set(0,0,0);this.destination.copy(this.anchor);this.sceneName='reset';this.setDistance(55);this.setScene('welcome');this.settle();
-    for(const p of [this.male,this.female]){p.gait=p.phase;p.blinkStart=-10;p.blinkAt=this.elapsed+4;p.group.rotation.y=p.baseRotation;p.body.position.y=0;p.body.rotation.set(0,0,0);p.head.rotation.set(0,0,p.female?.025:0);p.torso.position.y=.925;p.torso.scale.y=p.female?.79:.81;p.belly.position.y=.94;p.belly.scale.y=.599;p.gift.visible=false;p.eyes.forEach(e=>e.scale.y=1);p.wings.forEach((wing,i)=>{wing.rotation.z=i?.23:-.23;bendFlipper(wing.children[0],0,'idle',1.4);wing.children[0].userData.bent=false;});p.feet.forEach(foot=>{foot.position.y=.065;foot.position.z=.123;foot.rotation.x=0;});}
+    for(const p of [this.male,this.female]){p.stride.reset({x:p.group.position.x,z:p.group.position.z,yaw:p.group.rotation.y});p.blinkStart=-10;p.blinkAt=this.elapsed+4;p.group.rotation.y=p.baseRotation;p.body.position.y=0;p.body.rotation.set(0,0,0);p.head.rotation.set(0,0,p.female?.025:0);p.torso.position.y=.925;p.torso.scale.y=p.female?.79:.81;p.belly.position.y=.94;p.belly.scale.y=.599;p.gift.visible=false;p.eyes.forEach(e=>e.scale.y=1);p.wings.forEach((wing,i)=>{wing.rotation.z=i?.23:-.23;bendFlipper(wing.children[0],0,'idle',1.4);wing.children[0].userData.bent=false;});p.feet.forEach(foot=>{foot.position.x=(p.feet.indexOf(foot)?1:-1)*.205;foot.position.y=.065;foot.position.z=.123;foot.rotation.x=0;});}
   }
 
   endContact(){this.spacing.release(this.elapsed);this.pose='idle';this.reaction='idle';this.reactionUntil=Infinity;}
@@ -816,21 +843,35 @@ export class JourneyWorld {
     this.lastTime = now;
     this.elapsed += Math.min(rawDt,1);
     const t = this.elapsed;
-    if(this.anchor.distanceTo(this.destination)<.18&&this.travelQueue?.length){const next=this.travelQueue.shift();this.destination.copy(this.environments.enter(next));this.place=next;}
+    if(!this.travelLeg&&this.travelQueue?.length&&t>=(this.legReadyAt||0))this.startTravelLeg(this.travelQueue.shift());
     if (this.reactionUntil < t){this.reaction=this.pose==='idle'?'idle':this.pose;this.spacing.release();this.reactionUntil=Infinity;}
-    if(t>this.nextIdle&&this.reaction==='idle'&&!this.quiet&&['welcome','customize','journey'].includes(this.sceneName)){this.react(['curious','shy','hopeful'][Math.floor(Math.random()*3)]);this.nextIdle=t+14+Math.random()*8;}
+    if(!this.isTravelling()&&t>this.nextIdle&&this.reaction==='idle'&&!this.quiet&&['welcome','customize','journey'].includes(this.sceneName)){this.react(['curious','shy','hopeful'][Math.floor(Math.random()*3)]);this.nextIdle=t+14+Math.random()*8;}
     const embrace=this.spacing.override!=null||['hug','kiss','hand'].includes(this.reaction);
-    if(!embrace){const remaining=this.anchor.distanceTo(this.destination),speed=Math.min(remaining*2,this.sceneName==='portal'?1.8:2.4);this.travelSpeed=lerp(this.travelSpeed||0,speed,1-Math.exp(-dt*4));if(remaining>.001)this.anchor.addScaledVector(this.destination.clone().sub(this.anchor).normalize(),Math.min(remaining,this.travelSpeed*dt));}
-    if(this.pendingInteractions?.size&&!this.travelQueue?.length&&this.anchor.distanceTo(this.destination)<.3){const ids=[...this.pendingInteractions];this.pendingInteractions.clear();ids.forEach(id=>this.environments.interact(id,t));this.interact(ids.at(-1));}
+    const departingBench=(this.benchBlend||0)>.01;
+    const oldAnchor=this.anchor.clone(),hadLeg=!!this.travelLeg;
+    if(this.travelLeg&&!embrace&&!departingBench){
+      const leg=this.travelLeg.advance(dt);this.travelProgress=leg.progress;
+      this.anchor.set(leg.x,0,leg.z);
+      if(leg.done){this.anchor.copy(this.destination);this.travelLeg=null;this.legReadyAt=t+.18;this.arrivalUntil=this.travelQueue?.length?Infinity:t+.55;}
+    }
     this.benchBlend=lerp(this.benchBlend||0,this.reaction==='sitting'?1:0,1-Math.exp(-dt*3));if(this.benchBlend<.001)this.benchBlend=0;
     const contact=this.spacing.sample(t);if(this.companionVisible)this.positionPair(contact.gap);else this.male.target.copy(this.anchor).add(new THREE.Vector3(-.04,0,.23));
-    const travel=this.destination.clone().sub(this.anchor);
-    const state={reaction:contact.phase>0?contact.kind:this.reaction,scene:this.sceneName,contact,actualGap:this.female.group.position.x-this.male.group.position.x,variation:this.variation,travelYaw:!embrace&&this.immersed&&travel.length()>.18?Math.atan2(travel.x,travel.z):null};
+    const movingRoute=!!this.travelLeg||!!this.travelQueue?.length;
+    const state={reaction:contact.phase>0?contact.kind:this.reaction,scene:this.sceneName,contact,actualGap:this.female.group.position.x-this.male.group.position.x,variation:this.variation,
+      directTravel:(movingRoute||hadLeg)&&!departingBench&&!embrace,anchorDelta:this.anchor.clone().sub(oldAnchor),walkAllowed:!embrace&&!departingBench,
+      travelYaw:movingRoute&&!embrace&&!departingBench?this.lastTravelYaw:null};
     this.male.animate(t, dt, this.reducedMotion, state);
     if (this.female.group.visible) this.female.animate(t, dt, this.reducedMotion, state);
     this.keepBodiesApart();
     const focus=this.anchor.clone();focus.x=this.companionVisible?(this.male.group.position.x+this.female.group.position.x)/2:this.male.group.position.x;
-    this.guidedCamera.update({anchor:focus,scene:this.sceneName,place:this.place,elapsed:t,dt,reduced:this.reducedMotion,wide:this.wide,aspect:this.camera.aspect});
+    this.guidedCamera.update({anchor:focus,scene:this.sceneName,place:this.place,fromPlace:this.cameraFromPlace,travelProgress:this.travelProgress??1,travelling:movingRoute,elapsed:t,dt,reduced:this.reducedMotion,wide:this.wide,aspect:this.camera.aspect});
+    if(!this.arrivalNotified&&this.requestedPlace&&this.hasArrived()){
+      this.arrivalNotified=true;
+      const pose=this.pendingPose,reaction=this.pendingReaction;this.pendingPose=null;this.pendingReaction=null;
+      if(pose)this.setPose(pose);else if(reaction)this.react(reaction.kind,reaction.variation);
+      if(this.pendingInteractions?.size){const ids=[...this.pendingInteractions];this.pendingInteractions.clear();ids.forEach(id=>this.environments.interact(id,t));this.interact(ids.at(-1));}
+      this.options.onArrival?.(this.requestedPlace);
+    }
     this.environments.update(t,this.reducedMotion,this.quality.level);this.particlesAnchor.position.copy(this.anchor);
     this.contactShadows.forEach((s,i)=>{const p=i?this.female:this.male;s.visible=p.group.visible;s.position.set(p.group.position.x,p.group.position.y>.02?-.01:.007,p.group.position.z);s.material.opacity=(this.quality.level==='low'?.23:.09)*Math.max(.2,1-p.group.position.y*1.6);});
     this.keyLight.position.copy(this.anchor).add(new THREE.Vector3(-3.5,6,5));this.keyLight.target.position.copy(this.anchor);this.keyLight.target.updateMatrixWorld();

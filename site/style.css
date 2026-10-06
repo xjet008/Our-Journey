@@ -103,3 +103,7 @@ select:focus-visible{outline:2px solid var(--peach)}
  .cinematic #story{width:100%;max-width:none}.cinematic main,body.cinematic[data-scene] main{padding:0}
  footer{height:55px}.letter{max-height:210px}
 }
+
+/* Let a world entry finish before starting a small sideways wander. */
+body[data-walking="true"] #walkHint{opacity:.35;pointer-events:none}
+#walkHint{transition:opacity .35s}
