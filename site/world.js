@@ -1,10 +1,11 @@
 import * as THREE from './assets/three.module.min.js';
 import {PartnerSpacing,smooth} from './proximity.js';
-import {createFlipper, bendFlipper, moodPose, moodAliases} from './character-motion.js';
+import {createFlipper, bendFlipper, bendFlowerFlipper, moodPose, moodAliases} from './character-motion.js';
 import {RomanticWorld, places} from './environments.js';
 import {GuidedCamera, AdaptiveQuality} from './cinematic-camera.js';
 import {bench} from './world-layout.js';
 import {WalkingLeg, PenguinStride} from './walking.js';
+import {flowerGiftPose,FLOWER_GIFT_DURATION} from './flower-gift.js';
 
 const TAU = Math.PI * 2;
 const FLOOR_LIMIT = 1.24;
@@ -317,7 +318,7 @@ class Penguin {
     const rightRest = sitting ? .6 : .23;
     let left = leftRest, right = rightRest;
     let face = this.baseRotation;
-    this.gift.visible = state.reaction === 'flower' && !this.female;
+    this.gift.visible = false;
     const active = moodAliases[state.reaction] || state.reaction;
     const contact=state.contact || {phase:0,kind:'idle'};
     if (walking) { left -= Math.sin(tempo) * .15; right -= Math.sin(tempo) * .15; }
@@ -357,9 +358,13 @@ class Penguin {
         this.body.rotation.z = Math.sin(t * 6 + this.phase) * .10;
         this.body.position.y += Math.abs(Math.sin(t * 5 + this.phase)) * .12;
       }
-    } else if (active === 'flower') {
-      right = 1.08;
-      this.head.rotation.z = -.075;
+    } else if (active === 'flower'||active==='flower-pick') {
+      const gift=state.flower;
+      left=leftRest;right=rightRest;
+      face=this.baseRotation*(1-Math.max(gift.offer,gift.receive));
+      this.head.rotation.x=this.female?-.04*gift.receive:.22*gift.pick;
+      this.head.rotation.y=(this.female?-.12:.12)*Math.max(gift.offer,gift.receive);
+      this.head.rotation.z=(this.female?.075:-.065)*Math.max(gift.offer,gift.receive);
     } else if (active === 'sleep' || active === 'sleeping') {
       this.head.rotation.x = .14;
       this.head.rotation.z = -.09;
@@ -386,10 +391,12 @@ class Penguin {
       const wrap=active==='hug'&&!this.female&&i===1;
       const heart=active==='heart';
       const hand=active==='hand'&&(this.female?i===0:i===1);
+      const giving=state.flower&&(this.female?i===0:i===1);
       const weight=wrap||hand?contact.phase:heart?1:0;
-      if(wrap||heart||hand){wing.rotation.z=0;bendFlipper(wing.children[0],weight,wrap?'hug':hand?'hand':'heart',state.actualGap||1.36);}
+      if(giving){wing.rotation.z=0;wing.rotation.x=0;bendFlowerFlipper(wing.children[0],state.flower,state.actualGap||1.52,this.female);}
+      else if(wrap||heart||hand){wing.rotation.z=0;bendFlipper(wing.children[0],weight,wrap?'hug':hand?'hand':'heart',state.actualGap||1.36);}
       else if(wing.children[0].userData.bent){bendFlipper(wing.children[0],0,'idle',1.4);}
-      wing.children[0].userData.bent=wrap||heart||hand;
+      wing.children[0].userData.bent=!!(wrap||heart||hand||giving);
       wing.position.set((i===0?-1:1)*.50,1.25,.035);
     });
     const stride=this.stride.advance({x:this.group.position.x,z:this.group.position.z,yaw:this.group.rotation.y},dt,!reduced&&state.walkAllowed!==false&&!sitting);
@@ -677,7 +684,7 @@ export class JourneyWorld {
     this.gatewayPath.visible=name==='portal';
     if(name==='welcome'||name==='customize'){this.destination.set(0,0,0);this.travelQueue=[];this.requestedPlace=null;this.travelLeg=null;this.arrivalUntil=0;this.pendingPose=null;this.pendingReaction=null;this.place=null;this.setCompanion(name==='customize');}
     else{this.setCompanion(true);if(['letter','distance'].includes(name))this.travelTo('entrance',true);if(['final','selfie','memory'].includes(name))this.travelTo('viewpoint',true);}
-    if(changed&&!(['selfie','memory'].includes(previous)&&['selfie','memory'].includes(name))){this.pose='idle';this.spacing.release(this.elapsed);this.reaction='idle';this.reactionUntil=Infinity;this.walkCenter=0;}
+    if(changed&&!(['selfie','memory'].includes(previous)&&['selfie','memory'].includes(name))){this.pose='idle';this.spacing.release(this.elapsed);this.reaction='idle';this.reactionUntil=Infinity;this.walkCenter=0;this.updateFlowerGift(null);}
     this.keyLight.color.set(['final','memory'].includes(name)?'#ffd7ad':'#ffdfc1');
     this.resize();
     if(changed&&!this.immersed)this.settle();
@@ -778,10 +785,30 @@ export class JourneyWorld {
     if(this.failed||this.disposed)return;
     const kind=poseName(name);
     if(this.isTravelling()){this.pendingReaction={kind,variation};return;}
-    if(this.spacing.override&&!['hug','kiss','hand'].includes(kind))return;
-    this.reaction=kind;this.reactionStart=this.elapsed;this.variation=variation??Math.floor(Math.random()*3);
-    this.reactionUntil=this.elapsed+(['hug','kiss','hand'].includes(kind)?7.6:kind==='sitting'?7:4.5);
-    if(['hug','kiss','hand'].includes(kind)){this.setCompanion(true);this.spacing.contact(kind,this.elapsed);}
+    if(this.spacing.override&&!['hug','kiss','hand','flower','flower-pick'].includes(kind))return;
+    if(kind==='flower'&&this.reaction==='flower')return;
+    const pickupAge=kind==='flower'&&this.reaction==='flower-pick'?Math.min(this.elapsed-this.reactionStart,2.55):0;
+    this.reaction=kind;this.reactionStart=this.elapsed-pickupAge;this.variation=variation??Math.floor(Math.random()*3);
+    this.reactionUntil=kind==='flower-pick'?Infinity:this.reactionStart+(['hug','kiss','hand','flower'].includes(kind)?FLOWER_GIFT_DURATION:kind==='sitting'?7:4.5);
+    if(kind==='flower'||kind==='flower-pick')this.flowerReceived=false;
+    if(kind==='flower-pick'){this.spacing.release(this.elapsed);this.environments.interact('flower',this.elapsed);}
+    if(['hug','kiss','hand','flower'].includes(kind)){this.setCompanion(true);this.spacing.contact(kind,this.reactionStart);}
+  }
+
+  updateFlowerGift(pose){
+    const gift=this.male.gift;
+    if(!pose){gift.visible=false;this.female.accessory.scale.setScalar(1);return;}
+    this.scene.updateMatrixWorld(true);
+    const grip=wing=>{
+      const mesh=wing.children[0],attr=mesh.geometry.attributes.position,point=new THREE.Vector3();
+      for(let i=0;i<mesh.userData.rings;i++)point.add(new THREE.Vector3().fromBufferAttribute(attr,mesh.userData.segments*mesh.userData.rings+i));
+      return point.divideScalar(mesh.userData.rings).applyMatrix4(mesh.matrixWorld).add(new THREE.Vector3(0,.08,0));
+    };
+    const position=grip(this.male.wings[1]).lerp(grip(this.female.wings[0]),pose.transfer);
+    gift.position.copy(this.male.body.worldToLocal(position));gift.rotation.set(0,0,0);gift.visible=pose.visible;
+    gift.traverse(obj=>{if(obj.material){obj.material.transparent=true;obj.material.opacity=pose.opacity;}});
+    if(pose.wear&&!this.flowerReceived){this.setAccessory('flower',this.female.accent);this.flowerReceived=true;}
+    this.female.accessory.scale.setScalar(this.flowerReceived?Math.max(.001,pose.worn):1);
   }
 
   walkTo(x=0){
@@ -848,7 +875,7 @@ export class JourneyWorld {
     for(const p of [this.male,this.female]){p.stride.reset({x:p.group.position.x,z:p.group.position.z,yaw:p.group.rotation.y});p.blinkStart=-10;p.blinkAt=this.elapsed+4;p.group.rotation.y=p.baseRotation;p.body.position.y=0;p.body.rotation.set(0,0,0);p.head.rotation.set(0,0,p.female?.025:0);p.torso.position.y=.925;p.torso.scale.y=p.female?.79:.81;p.belly.position.y=.94;p.belly.scale.y=.599;p.gift.visible=false;p.eyes.forEach(e=>e.scale.y=1);p.wings.forEach((wing,i)=>{wing.rotation.z=i?.23:-.23;bendFlipper(wing.children[0],0,'idle',1.4);wing.children[0].userData.bent=false;});p.feet.forEach(foot=>{foot.position.x=(p.feet.indexOf(foot)?1:-1)*.205;foot.position.y=.065;foot.position.z=.123;foot.rotation.x=0;});}
   }
 
-  endContact(){this.spacing.release(this.elapsed);this.pose='idle';this.reaction='idle';this.reactionUntil=Infinity;}
+  endContact(){this.spacing.release(this.elapsed);this.pose='idle';this.reaction='idle';this.reactionUntil=Infinity;this.updateFlowerGift(null);}
 
   frame(now) {
     if (this.disposed || this.failed) return;
@@ -871,12 +898,14 @@ export class JourneyWorld {
     this.benchBlend=lerp(this.benchBlend||0,this.reaction==='sitting'?1:0,1-Math.exp(-dt*3));if(this.benchBlend<.001)this.benchBlend=0;
     const contact=this.spacing.sample(t);if(this.companionVisible)this.positionPair(contact.gap);else this.male.target.copy(this.anchor).add(new THREE.Vector3(-.04,0,.23));
     const movingRoute=!!this.travelLeg||!!this.travelQueue?.length;
-    const state={reaction:contact.phase>0?contact.kind:this.reaction,scene:this.sceneName,contact,actualGap:this.female.group.position.x-this.male.group.position.x,variation:this.variation,
+    const flower=['flower','flower-pick'].includes(this.reaction)?flowerGiftPose(t-this.reactionStart,{preview:this.reaction==='flower-pick',reduced:this.reducedMotion}):null;
+    const state={reaction:contact.phase>0&&contact.kind!=='flower'?contact.kind:this.reaction,scene:this.sceneName,contact,flower,actualGap:this.female.group.position.x-this.male.group.position.x,variation:this.variation,
       directTravel:(movingRoute||hadLeg)&&!departingBench&&!embrace,anchorDelta:this.anchor.clone().sub(oldAnchor),walkAllowed:!embrace&&!departingBench,
       travelYaw:movingRoute&&!embrace&&!departingBench?this.lastTravelYaw:null};
     this.male.animate(t, dt, this.reducedMotion, state);
     if (this.female.group.visible) this.female.animate(t, dt, this.reducedMotion, state);
     this.keepBodiesApart();
+    this.updateFlowerGift(flower);
     const focus=this.anchor.clone();focus.x=this.companionVisible?(this.male.group.position.x+this.female.group.position.x)/2:this.male.group.position.x;
     this.guidedCamera.update({anchor:focus,scene:this.sceneName,place:this.place,fromPlace:this.cameraFromPlace,travelProgress:this.travelProgress??1,travelling:movingRoute,elapsed:t,dt,reduced:this.reducedMotion,wide:this.wide,aspect:this.camera.aspect});
     if(!this.arrivalNotified&&this.requestedPlace&&this.hasArrived()){

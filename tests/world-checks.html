@@ -28,6 +28,21 @@ function inspect(){
 }
 function step(n=100){for(let i=0;i<n;i++){w.frame((w.lastTime||performance.now())+1000/60);cancelAnimationFrame(w.frameId);inspect();}}
 const poses=['Standing together','Side hug','Funny pose','Heart pose','Penguin kiss','Looking at the stars'];
+function snapshot(title){w.renderer.render=draw;draw(w.scene,w.camera);const item=document.createElement('article');item.innerHTML=`<h2>${title}</h2><img alt="${title}" src="${w.capture()}">`;document.querySelector('.grid').append(item);w.renderer.render=()=>{};}
+for(const selected of [0,55,100]){
+ w.reset();w.setScene('journey');w.travelTo('roses');w.settle();w.setDistance(selected);w.setAccessory('pearls');step(70);
+ w.react('flower-pick');step(180);assert(w.male.gift.visible,'Picked flower is not visible');assert(w.female.accessoryName==='pearls','Flower transferred before acceptance');
+ w.endContact();step(10);assert(!w.male.gift.visible&&w.female.accessoryName==='pearls','Declining changed the accessory or left a gift');
+ w.react('flower');step(55);if(selected===55)snapshot('Picking a little flower');step(110);if(selected===55)snapshot('Offering it to her');
+ step(45);if(selected===55)snapshot('Passing the flower');step(150);
+ assert(w.flowerReceived&&w.female.accessoryName==='flower','Female did not receive the flower');
+ step(150);assert(!w.male.gift.visible&&w.female.accessory.scale.x===1,'Flower handoff did not finish');assert(w.spacing.selected===selected&&w.spacing.override===null,'Flower handoff lost the chosen distance');
+ w.react('flower');step(140);w.travelTo('grove');step(10);assert(!w.male.gift.visible,'Interrupted flower remains visible');w.settle();step(70);
+ w.react('flower-pick');step(180);w.scene.updateMatrixWorld(true);const heldFlower=w.male.gift.getWorldPosition(new THREE.Vector3());w.react('flower');step(1);w.scene.updateMatrixWorld(true);
+ assert(w.male.gift.getWorldPosition(new THREE.Vector3()).distanceTo(heldFlower)<.08,'Accepting snaps the flower from its held position');step(330);
+ assert(w.flowerReceived&&w.spacing.selected===selected,'Accepted preview did not finish or lost distance');
+}
+w.reset();w.setScene('journey');w.travelTo('roses');w.settle();w.setReducedMotion(true);w.react('flower');step(510);assert(w.female.accessoryName==='flower'&&!w.male.gift.visible,'Gentler flower handoff did not complete');w.setReducedMotion(false);
 for(const d of [0,55,100]){w.setScene('selfie');w.setDistance(d);w.settle();w.male.group.position.copy(w.male.target);w.female.group.position.copy(w.female.target);step(60);for(const pose of poses){w.setPose(pose);step(170);assert(w.spacing.selected===d,'Pose lost distance');}w.setPose('Standing together');for(const x of [-10,-1,0,1,10]){w.walkTo(x);step(40);assert(w.spacing.selected===d,'Walking lost distance');}}
 for(const place of ['roses','grove','stars','viewpoint','entrance','roses','grove','stars']){w.setScene('journey');w.travelTo(place);w.settle();step(90);assert(w.environments.cache.size<=3,'Scene cache unbounded');}
 for(const mood of ['happy','wave','flower','shy','curious','patient','surprised','hand','hug','kiss']){w.setDistance(100);w.react(mood);step(480);assert(w.spacing.selected===100,'Reaction changed preference');}

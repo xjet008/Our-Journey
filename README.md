@@ -89,3 +89,9 @@ Validation: all 17 Node tests pass, including bounded foot reach at four frame r
 The lake deck's bench-side rail is removed, leaving a clear approach onto the bank. World interaction markers have brighter outlines, warm glow rings and small sparkle accents. The bench marker keeps its action label visible, and selecting a marker gives a brief response. Gentler motion uses static highlights.
 
 The bench marker sits at the visible end of the seat, and the ripple marker is raised above the water to avoid the reading area and lower controls. All 17 Node tests and 32,996 sampled geometry frames passed; the actual bench marker was clicked and both penguins' seating checked in the desktop interface.
+
+## A flower for her
+
+The flower action starts a gentle picking and offering pose. Choosing “I'll keep it” continues from the held flower: she reaches for it, receives it, and tucks the bloom by her head. The flower follows the actual flipper tips through the exchange and fades into her flower accessory. Both penguins then relax and return to the chosen distance. Declining clears the offer; navigating away cancels the exchange. Gentler motion skips the dipping pose.
+
+Validation: all 20 Node tests pass, including phase continuity, acceptance timing, and restoring the latest distance. Browser checks passed over 38,009 sampled frames, including offering, receiving, declining, interruption, gentler motion, and body/wing clearance at three distances. The flower offer and acceptance were also checked through the actual desktop controls.

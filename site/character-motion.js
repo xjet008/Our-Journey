@@ -26,6 +26,25 @@ export function bendFlipper(mesh,weight,kind,gap){
   if(kind==='heart')target=[[0,0,0],[side*.11,-.13,.28],[-side*.18,-.14,.56],[-side*.39,.05,.60]];
   if(kind==='hand')target=[[0,0,0],[side*.08,-.15,.12],[side*.16,-.3,.26],[side*(gap/2-.5),-.32,.35]];
   const points=rest.map((p,i)=>new THREE.Vector3(...p).lerp(new THREE.Vector3(...target[i]),smooth(weight)));
+  deformFlipper(mesh,points);
+}
+
+export function bendFlowerFlipper(mesh,pose,gap,female){
+  const side=mesh.userData.side;
+  const rest=[[0,0,0],[side*.055,-.14,.025],[side*.07,-.34,.025],[side*.03,-.48,.04]];
+  const pick=[[0,0,0],[side*.08,-.25,.13],[side*.12,-.55,.25],[side*.08,-.75,.30]];
+  const offer=[[0,0,0],[side*.10,-.12,.23],[side*.18,-.25,.53],[side*(gap/2-.5),-.28,.66]];
+  const tuck=[[0,0,0],[-.05,.05,.38],[.13,.36,.49],[.19,.48,.162]];
+  const points=rest.map((p,i)=>{
+    const v=new THREE.Vector3(...p);
+    if(female)v.lerp(new THREE.Vector3(...offer[i]).lerp(new THREE.Vector3(...tuck[i]),pose.tuck),pose.receive);
+    else v.lerp(new THREE.Vector3(...pick[i]),pose.pick).lerp(new THREE.Vector3(...offer[i]),pose.offer);
+    return v;
+  });
+  deformFlipper(mesh,points);
+}
+
+function deformFlipper(mesh,points){
   const curve=new THREE.CatmullRomCurve3(points),frames=curve.computeFrenetFrames(mesh.userData.segments,false);
   const attr=mesh.geometry.attributes.position;
   for(let i=0;i<=mesh.userData.segments;i++){
