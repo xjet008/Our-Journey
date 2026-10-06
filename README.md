@@ -54,10 +54,10 @@ The three background videos were supplied by the project owner and optimized for
 
 ## October polish pass
 
-Ordinary conversation reactions preserve personal space. Accepted hugs have a lead-in, hold and return; interrupted gestures separate smoothly. Selfie-to-memory transitions retain the selected pose and image. Back navigation is available at the memory card and returns to the top of the previous chapter.
+Ordinary conversation reactions preserve personal space. Accepted hugs have a lead-in, hold and return; interrupted gestures separate smoothly. Selfie-to-memory transitions retain the selected pose and image. Back navigation is available at the memory card, restores the correct chapter and location, and returns to the top. Closing consent choices returns to the walk without adding a repeated question to the history.
 
 Restart clears environmental discoveries, camera gestures, reaction and walking state, pending interactions, answers, photos and generated card URLs. Async photo/card results from an older journey are discarded. Sound, motion, world-detail preferences and personalized words are retained.
 
 The audio bed continues between locations with gradual filter changes. Discovery chimes are short and limited; chords cannot stack. Sound fades down while the page is hidden. On leaving the page, audio and rendering resources are released.
 
-Validation: eight Node tests and 16,380 sampled animation frames passed, including no sampled body penetration or bench-seat intersection. Full mobile journey checked at 390×844, with narrow portrait and landscape layout checks. The generated and downloaded memory PNG was verified at 1500×4421 pixels. Hardware Safari/iOS and Android GPU performance remain unverified.
+Validation: ten Node tests and 16,380 sampled animation frames passed, including no sampled body penetration or bench-seat intersection. Full mobile journey checked at 390×844, with narrow portrait and landscape layout checks. The generated and downloaded memory PNG was verified at 1500×4421 pixels. Hardware Safari/iOS and Android GPU performance remain unverified.
