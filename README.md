@@ -6,7 +6,7 @@ A playful, romantic website with interactive 3D penguins and cinematic video bac
 - Read a personal letter, listen to music, and capture a penguin selfie.
 - Download or share a memory card with the moments and answers you choose.
 - Choose silk bows, rose blooms, tiny tiaras, pearls, ribbons, or heart clips.
-- A warm rose-and-blush palette with visibly moving background films.
+- A cool teal-and-cream palette, earthy floating ground, and a pink female penguin.
 - Responsive layouts, keyboard controls, and reduced-motion support.
 
 ## Run locally

@@ -137,10 +137,10 @@ class Penguin {
     this.group = new THREE.Group();
     this.body = new THREE.Group();
     this.group.add(this.body);
-    this.dark = material(female ? '#655170' : '#353044', .53);
+    this.dark = material(female ? '#cf7da3' : '#293748', .53);
     this.cream = material('#fff5e9', .83);
     const orange = material(female ? '#e9ac99' : '#e5ac8d', .67);
-    const black = material('#231e30', .25);
+    const black = material('#101c2b', .25);
     this.torso = sphere(this.body, this.dark, [0, .925, 0], [female ? .555 : .575, female ? .79 : .81, .445]);
     this.belly = sphere(this.body, this.cream, [0, .94, .347], [.437, .599, .164]);
     this.head = new THREE.Group();
@@ -389,7 +389,7 @@ export class JourneyWorld {
     this.cameraTarget = new THREE.Vector3(0, .94, 0);
     this.desiredCameraTarget = this.cameraTarget.clone();
     this.camera.position.set(3.3, 2.65, 7.8);
-    this.keyLight = new THREE.DirectionalLight('#f8dae5', 3.15);
+    this.keyLight = new THREE.DirectionalLight('#ffdebc', 3.15);
     this.keyLight.position.set(-3.5, 6, 5);
     this.keyLight.castShadow = true;
     this.keyLight.shadow.mapSize.set(1024, 1024);
@@ -403,8 +403,8 @@ export class JourneyWorld {
     this.keyLight.shadow.normalBias = .018;
     this.keyLight.shadow.radius = 4;
     this.scene.add(this.keyLight);
-    this.scene.add(new THREE.HemisphereLight('#f8e4ef', '#857184', 2.1));
-    const rim = new THREE.DirectionalLight('#cfacd9', 2.0);
+    this.scene.add(new THREE.HemisphereLight('#dce7f2', '#778391', 2.1));
+    const rim = new THREE.DirectionalLight('#aecfe6', 2.0);
     rim.position.set(2, 3, -5);
     this.scene.add(rim);
     this.world = new THREE.Group();
@@ -430,29 +430,29 @@ export class JourneyWorld {
   buildIsland() {
     this.island = new THREE.Group();
     this.world.add(this.island);
-    const ice = material('#c6b1cd', .88);
-    const snow = material('#fff2f4', .98);
-    mesh(new THREE.CylinderGeometry(2.9, 2.53, .28, 64), ice, this.island, [0, -.18, 0], [1, 1, .72]);
-    const top = sphere(this.island, snow, [0, -.055, 0], [2.96, .11, 2.12], 64);
+    const soil = material('#51392b', .98);
+    const earth = material('#73503b', 1);
+    mesh(new THREE.CylinderGeometry(2.9, 2.53, .28, 64), soil, this.island, [0, -.18, 0], [1, 1, .72]);
+    const top = sphere(this.island, earth, [0, -.055, 0], [2.96, .11, 2.12], 64);
     top.receiveShadow = true;
     top.castShadow = false;
-    const rim = mesh(new THREE.TorusGeometry(2.81, .085, 12, 96), snow, this.island, [0, -.062, 0], [1, .735, .7]);
+    const rim = mesh(new THREE.TorusGeometry(2.81, .085, 12, 96), earth, this.island, [0, -.062, 0], [1, .735, .7]);
     rim.rotation.x = Math.PI / 2;
     for (let i = 0; i < 12; i++) {
       const angle = i * TAU / 12;
-      sphere(this.island, snow, [Math.cos(angle) * 2.73, -.064, Math.sin(angle) * 1.93], [.18 + (i % 3) * .04, .075, .17], 18);
+      sphere(this.island, earth, [Math.cos(angle) * 2.73, -.064, Math.sin(angle) * 1.93], [.18 + (i % 3) * .04, .075, .17], 18);
     }
     this.lanterns = [];
     this.glowMap = glowTexture();
     this.addLantern(-2.04, .93, 1);
     this.addLantern(2.12, -.62, .82);
-    const pebbleMat = material('#e3c8d4', .9);
+    const pebbleMat = material('#806850', .9);
     for (let i = 0; i < 6; i++) {
       const x = -.74 + i * .25;
       const stone = sphere(this.island, pebbleMat, [x, .057, 1.11 + Math.sin(i) * .07], [.086, .024, .065], 16);
       stone.rotation.y = i * .7;
     }
-    const gold = material('#f1c6ad', .75);
+    const gold = material('#d9bfa0', .75);
     const littleHeart = mesh(heartGeometry(), gold, this.island, [1.48, .08, .98], [.125, .125, .125]);
     littleHeart.rotation.x = -Math.PI / 2;
     littleHeart.rotation.z = -.3;
@@ -462,11 +462,11 @@ export class JourneyWorld {
     const g = new THREE.Group();
     g.position.set(x, .035, z);
     g.scale.setScalar(scale);
-    const bronze = material('#926f7e', .46, { metalness: .54 });
+    const bronze = material('#7a6359', .46, { metalness: .54 });
     mesh(new THREE.CylinderGeometry(.135, .165, .075, 24), bronze, g, [0, .04, 0]);
     mesh(new THREE.CylinderGeometry(.135, .145, .05, 24), bronze, g, [0, .4, 0]);
     mesh(new THREE.ConeGeometry(.2, .11, 4), bronze, g, [0, .478, 0]).rotation.y = Math.PI / 4;
-    const glass = material('#f8dae5', .22, { transparent: true, opacity: .24, emissive: '#ee9eb5', emissiveIntensity: .35, side: THREE.DoubleSide });
+    const glass = material('#ffd19a', .22, { transparent: true, opacity: .24, emissive: '#eac286', emissiveIntensity: .35, side: THREE.DoubleSide });
     mesh(new THREE.CylinderGeometry(.125, .125, .3, 20, 1, true), glass, g, [0, .228, 0]);
     for (let i = 0; i < 4; i++) {
       const a = i * Math.PI / 2 + Math.PI / 4;
@@ -474,12 +474,12 @@ export class JourneyWorld {
     }
     const handle = mesh(new THREE.TorusGeometry(.064, .009, 6, 20, Math.PI), bronze, g, [0, .552, 0]);
     handle.rotation.z = 0;
-    const flame = sphere(g, material('#ffe8de', .3, { emissive: '#f1c6ad', emissiveIntensity: 2.3 }), [0, .212, 0], [.033, .073, .033], 16);
+    const flame = sphere(g, material('#ffe4ac', .3, { emissive: '#ffbb60', emissiveIntensity: 2.3 }), [0, .212, 0], [.033, .073, .033], 16);
     const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.glowMap, transparent: true, opacity: .47, depthWrite: false, blending: THREE.AdditiveBlending }));
     sprite.position.y = .24;
     sprite.scale.set(.79, .79, 1);
     g.add(sprite);
-    const light = new THREE.PointLight('#f6c4d0', 1.7, 3.5, 2);
+    const light = new THREE.PointLight('#ffc47f', 1.7, 3.5, 2);
     light.position.y = .3;
     g.add(light);
     this.island.add(g);
@@ -490,10 +490,10 @@ export class JourneyWorld {
     this.door = new THREE.Group();
     this.door.position.set(1.67, -.005, -.88);
     this.door.rotation.y = -.23;
-    const frameMat = material('#f1c6ad', .84, { emissive: '#ad8195', emissiveIntensity: .12 });
+    const frameMat = material('#ead2bf', .84, { emissive: '#a9806a', emissiveIntensity: .12 });
     const archPoints = [[-.62, 0, 0], [-.62, .65, 0], [-.62, 1.45, 0], [-.55, 1.85, 0], [-.3, 2.12, 0], [0, 2.21, 0], [.3, 2.12, 0], [.55, 1.85, 0], [.62, 1.45, 0], [.62, .65, 0], [.62, 0, 0]];
     tube(this.door, archPoints, .061, frameMat, 64);
-    tube(this.door, archPoints.map(p => [p[0] * .96, p[1] * .99, .044]), .012, material('#f8dae5', .6, { emissive: '#f8dae5', emissiveIntensity: 1.3 }), 64);
+    tube(this.door, archPoints.map(p => [p[0] * .96, p[1] * .99, .044]), .012, material('#ffe3b9', .6, { emissive: '#ffe3b9', emissiveIntensity: 1.3 }), 64);
     mesh(new THREE.BoxGeometry(1.44, .058, .51), frameMat, this.door, [0, .025, 0]);
     const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.glowMap, transparent: true, opacity: .16, depthWrite: false, blending: THREE.AdditiveBlending, color: '#efc4c2' }));
     sprite.position.set(0, 1.2, -.035);
@@ -515,7 +515,7 @@ export class JourneyWorld {
   buildTable() {
     this.table = new THREE.Group();
     this.table.position.set(-1.65, .005, .27);
-    const wood = material('#a78897', .81);
+    const wood = material('#a28877', .81);
     mesh(new THREE.CylinderGeometry(.45, .45, .065, 40), wood, this.table, [0, .73, 0]);
     for (let i = 0; i < 3; i++) {
       const angle = i * TAU / 3;
@@ -523,9 +523,9 @@ export class JourneyWorld {
       leg.rotation.z = -Math.cos(angle) * .09;
       leg.rotation.x = Math.sin(angle) * .09;
     }
-    const letter = mesh(new THREE.BoxGeometry(.44, .008, .31), material('#fff4ee', .98), this.table, [-.035, .769, .02]);
+    const letter = mesh(new THREE.BoxGeometry(.44, .008, .31), material('#fff2d5', .98), this.table, [-.035, .769, .02]);
     letter.rotation.y = -.22;
-    const seal = mesh(heartGeometry(), material('#d58ba5', .8), this.table, [.06, .788, .015], [.043, .043, .03]);
+    const seal = mesh(heartGeometry(), material('#bb7587', .8), this.table, [.06, .788, .015], [.043, .043, .03]);
     seal.rotation.x = -Math.PI / 2;
     this.table.visible = false;
     this.world.add(this.table);
@@ -542,11 +542,11 @@ export class JourneyWorld {
     }
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute('position', new THREE.BufferAttribute(this.snowPositions, 3));
-    this.snow = new THREE.Points(geometry, new THREE.PointsMaterial({ color: '#f8dae5', map: this.glowMap, transparent: true, opacity: .53, size: .063, depthWrite: false, sizeAttenuation: true }));
+    this.snow = new THREE.Points(geometry, new THREE.PointsMaterial({ color: '#fff6e7', map: this.glowMap, transparent: true, opacity: .53, size: .063, depthWrite: false, sizeAttenuation: true }));
     this.scene.add(this.snow);
     this.hearts = [];
     const heartGeo = heartGeometry();
-    const heartMat = material('#ee9eb5', .42, { emissive: '#c77d99', emissiveIntensity: .17 });
+    const heartMat = material('#e9a3b3', .42, { emissive: '#c47a91', emissiveIntensity: .17 });
     for (let i = 0; i < 14; i++) {
       const heart = mesh(heartGeo, heartMat, this.world, [0, 0, 0], [.095, .095, .095]);
       heart.visible = false;
@@ -589,7 +589,7 @@ export class JourneyWorld {
     this.door.visible = name === 'customize' || name === 'journey';
     this.table.visible = name === 'letter';
     this.door.scale.setScalar(name === 'journey' ? .82 : 1);
-    this.keyLight.color.set(name === 'memory' || name === 'final' ? '#f1c6ad' : name === 'distance' ? '#e6d4ef' : '#f8dae5');
+    this.keyLight.color.set(name === 'memory' || name === 'final' ? '#ffd7ad' : name === 'distance' ? '#e1e6f6' : '#ffdfc1');
     this.keyLight.intensity = name === 'distance' ? 2.8 : 3.15;
     if (name === 'welcome') {
       this.setCompanion(false);
@@ -614,7 +614,7 @@ export class JourneyWorld {
     if (visible) this.female.target.set(.69, 0, .04);
   }
 
-  setAccessory(name, color = '#ee9eb5') {
+  setAccessory(name, color = '#d597ae') {
     if (this.failed || this.disposed) return;
     this.female.setAccessory(name, color);
     this.react('happy');

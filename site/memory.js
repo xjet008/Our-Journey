@@ -1,9 +1,9 @@
 /* A small, self-contained keepsake renderer. No remote assets are required. */
 
-const PAPER = '#fff5f8';
-const INK = '#542c49';
-const CORAL = '#d8779c';
-const GOLD = '#bf91ae';
+const PAPER = '#fff8ec';
+const INK = '#20364b';
+const CORAL = '#c47c7f';
+const GOLD = '#c7a575';
 const SERIF = 'Georgia, "Times New Roman", serif';
 const SCRIPT = '"Segoe Script", "Apple Chancery", "URW Chancery L", cursive';
 const WIDTH = 1000;
@@ -289,9 +289,9 @@ function penguin(ctx, x, y, scale, angle, accessory, accent = CORAL) {
   ctx.translate(x, y);
   ctx.rotate(angle);
   ctx.scale(scale, scale);
-  ctx.fillStyle = '#d79aab';
+  ctx.fillStyle = '#d6b16d';
   ctx.beginPath(); ctx.ellipse(-31, 112, 25, 10, -.15, 0, Math.PI * 2); ctx.ellipse(31, 112, 25, 10, .15, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = '#4a2843';
+  ctx.fillStyle = accessory ? '#cf7da3' : '#183448';
   ctx.beginPath(); ctx.ellipse(0, 0, 78, 116, 0, 0, Math.PI * 2); ctx.fill();
   ctx.beginPath(); ctx.ellipse(-77, 16, 20, 63, .42, 0, Math.PI * 2); ctx.ellipse(77, 16, 20, 63, -.42, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = '#fff6f2';
@@ -299,7 +299,7 @@ function penguin(ctx, x, y, scale, angle, accessory, accent = CORAL) {
   ctx.beginPath(); ctx.ellipse(-25, -42, 32, 35, -.12, 0, Math.PI * 2); ctx.ellipse(25, -42, 32, 35, .12, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = INK;
   [-25, 25].forEach((eye) => { ctx.beginPath(); ctx.ellipse(eye, -45, 5, 8, 0, 0, Math.PI * 2); ctx.fill(); });
-  ctx.fillStyle = '#e3a4b3';
+  ctx.fillStyle = '#e0b174';
   ctx.beginPath(); ctx.moveTo(-12, -24); ctx.lineTo(12, -24); ctx.lineTo(0, -10); ctx.closePath(); ctx.fill();
   ctx.fillStyle = 'rgba(227,142,172,.65)';
   [-39, 39].forEach((cheek) => { ctx.beginPath(); ctx.ellipse(cheek, -24, 13, 6, 0, 0, Math.PI * 2); ctx.fill(); });
@@ -310,12 +310,12 @@ function penguin(ctx, x, y, scale, angle, accessory, accent = CORAL) {
 
 function fallbackSelfie(ctx, x, y, w, h, accent, accessory) {
   const sky = ctx.createLinearGradient(x, y, x, y + h);
-  sky.addColorStop(0, '#dfc0d7');
-  sky.addColorStop(.55, '#f8d7e3');
-  sky.addColorStop(1, '#fff5f1');
+  sky.addColorStop(0, '#dce4ec');
+  sky.addColorStop(.55, '#d1e0df');
+  sky.addColorStop(1, '#fffaf2');
   ctx.fillStyle = sky;
   ctx.fillRect(x, y, w, h);
-  ctx.fillStyle = 'rgba(255,253,246,.72)';
+  ctx.fillStyle = '#73503b';
   ctx.beginPath(); ctx.ellipse(x + w / 2, y + h, w * .8, h * .32, 0, 0, Math.PI * 2); ctx.fill();
   for (let i = 0; i < 16; i++) star(ctx, x + 46 + ((i * 113) % (w - 92)), y + 28 + ((i * 43) % (h * .48)), i % 3 === 0 ? 5 : 2.5, '#fffdf8');
   const scale = Math.min(w / 600, h / 390);
