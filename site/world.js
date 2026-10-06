@@ -721,14 +721,18 @@ export class JourneyWorld {
     this.reaction='hopeful';this.reactionUntil=this.elapsed+5.4;
   }
 
-  settle(){
+  settle({forward=false,snapCamera=false}={}){
     if(this.failed)return;
     if(this.requestedPlace){this.destination.copy(this.environments.enter(this.requestedPlace));this.place=this.requestedPlace;this.travelQueue=[];}
     this.travelLeg=null;this.travelProgress=1;this.cameraFromPlace=this.place;this.arrivalUntil=this.elapsed+.4;this.anchor.copy(this.destination);this.positionPair();
     if(!this.companionVisible)this.male.target.copy(this.anchor).add(new THREE.Vector3(-.04,0,.23));
     this.male.group.position.copy(this.male.target);this.female.group.position.copy(this.female.target);
-    for(const p of [this.male,this.female])p.stride.reset({x:p.group.position.x,z:p.group.position.z,yaw:p.group.rotation.y});
+    for(const p of [this.male,this.female]){
+      if(forward){p.group.rotation.y=p.baseRotation;p.body.position.y=0;p.body.rotation.z=0;p.feet.forEach((foot,i)=>{foot.position.set((i?1:-1)*.205,.065,.123);foot.rotation.x=0;});}
+      p.stride.reset({x:p.group.position.x,z:p.group.position.z,yaw:p.group.rotation.y});
+    }
     this.guidedCamera.update({anchor:this.anchor,place:this.place,scene:this.sceneName,elapsed:this.elapsed,dt:1,reduced:true,wide:this.wide,aspect:this.camera.aspect});
+    if(snapCamera){this.camera.position.copy(this.guidedCamera.position);this.guidedCamera.currentTarget.copy(this.guidedCamera.target);this.camera.lookAt(this.guidedCamera.target);}
   }
 
   setCompanion(visible = true) {

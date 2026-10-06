@@ -53,11 +53,11 @@ select:focus-visible{outline:2px solid var(--peach)}
 .cinematic #story{width:100%;max-width:none;position:absolute;inset:0;pointer-events:none;text-align:center}
 .cinematic .film-shade{background:linear-gradient(0deg,#142c35aa,transparent 45%,#142c3555)}
 .cinematic #worldStage{animation:none;filter:none}
-.gateway-words{position:absolute;top:16%;left:0;width:100%;animation:skyArrive 5.4s ease both;pointer-events:none}
+.gateway-words{position:absolute;top:16%;left:0;width:100%;animation:skyArrive .65s ease both;pointer-events:none}
 .gateway-words .eyebrow{justify-content:center;margin-bottom:12px;font-size:9px}
 .sky-writing{font:italic clamp(35px,5vw,65px)/1.2 Georgia;margin:0;color:#f5eee1;text-shadow:0 2px 20px #142c35}
 .gateway-skip{position:absolute;bottom:max(35px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);pointer-events:auto;min-height:48px;white-space:nowrap;font-size:11px;letter-spacing:.6px;border-bottom:1px solid #eac3a566;background:#17313988;padding:12px 20px}
-@keyframes skyArrive{0%{opacity:0;transform:translateY(14px)}15%,65%{opacity:1;transform:none}100%{opacity:0;transform:translateY(-10px)}}
+@keyframes skyArrive{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 .reduced .gateway-words{animation:none;opacity:1}
 @media(max-width:700px){
  .immersed header{height:70px}.immersed main,body.immersed[data-scene] main{display:block;padding:58svh 7% 35px;min-height:calc(100svh - 138px)}
@@ -107,3 +107,8 @@ select:focus-visible{outline:2px solid var(--peach)}
 /* Let a world entry finish before starting a small sideways wander. */
 body[data-walking="true"] #walkHint{opacity:.35;pointer-events:none}
 #walkHint{transition:opacity .35s}
+
+/* A brief covered handoff prevents the doorway and camera from popping. */
+.gateway-handoff{position:fixed;inset:0;z-index:90;display:grid;place-items:center;opacity:0;pointer-events:auto;background:radial-gradient(ellipse at 62% 44%,#35504d,#1c3439 65%);color:#eac3a5}
+.gateway-handoff span{font:28px Georgia;opacity:.7;text-shadow:0 0 24px #eac3a577}
+body[data-gateway-transition] #worldHotspots{visibility:hidden}

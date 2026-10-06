@@ -71,6 +71,17 @@ w.reset();w.setScene('customize');step(50);w.beginGateway();let gatewayFrames=0;
 while(!w.hasArrived()&&gatewayFrames<600){step(1);gatewayFrames++;}
 assert(w.hasArrived()&&w.anchor.z===-6,'Gateway did not complete its walk');
 assert(w.male.stride.blend<.02&&w.female.stride.blend<.02,'Gateway ended during a footstep');
+for(const selected of [0,55,100]){
+ w.reset();w.setDistance(selected);w.setScene('customize');step(50);w.beginGateway();step(15);
+ w.setScene('letter');w.settle({forward:true,snapCamera:true});
+ assert(w.anchor.z===-6,'Early gateway exit misses entrance');
+ assert(w.camera.position.distanceTo(w.guidedCamera.position)<.00001,'Gateway exit camera is not ready');
+ for(const p of [w.male,w.female]){
+  assert(Math.abs(p.group.rotation.y-p.baseRotation)<.00001,'Gateway exit leaves a penguin facing away');
+  assert(p.stride.blend===0&&p.feet.every(f=>f.position.y===.065&&f.rotation.x===0),'Gateway exit leaves a foot mid-step');
+ }
+ assert(w.spacing.selected===selected,'Gateway exit altered distance');step(55);
+}
 w.setScene('journey');w.travelTo('stars');w.react('hug');step(1400);
 assert(w.anchor.z===-21&&w.hasArrived(),'Contact request blocked world arrival');
 w.setScene('selfie');w.settle();w.setDistance(100);w.setPose('Standing together');step(100);
